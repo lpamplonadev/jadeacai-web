@@ -71,14 +71,15 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f3ef] text-[#292923]">
-      <div className="mx-auto flex min-h-screen max-w-[1440px]">
+    <main className="min-h-screen w-full text-[#292923]">
+      <div className="mx-auto flex min-h-screen max-w-full bg-cream">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 self-start border-r border-coral/40 bg-crimson px-5 py-7 md:flex md:flex-col">
           <Link
             href="/"
-            className="text-sm font-black tracking-wide text-petal"
+            className="text-xl font-black tracking-wide text-petal "
+            style={{ fontFamily: "Pacifico, cursive" }}
           >
-            JADE <span className="font-semibold text-petal">AÇAÍ</span>
+            Jade Açaí
           </Link>
           <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-petal">
             Operação
@@ -100,8 +101,14 @@ export default async function AdminPage() {
         <section className="min-w-0 flex-1 px-5 py-6 pb-24 sm:px-8 sm:py-8 sm:pb-24 lg:px-11 md:pb-8">
           <header className="flex items-start justify-between gap-4 border-b border-[#deded7] pb-6">
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8b1a2e]">
-                Jade Açaí · Administração
+              <p className="text-xs font-extrabold tracking-[0.16em] text-[#8b1a2e]">
+                <span
+                  style={{ fontFamily: "Pacifico, cursive" }}
+                  className="text-xl"
+                >
+                  Jade Açaí
+                </span>
+                {""} | Administração
               </p>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                 Visão geral
