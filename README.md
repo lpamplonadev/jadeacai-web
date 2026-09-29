@@ -43,6 +43,7 @@ npm run build
 - `app/page.tsx`: compõe a landing e controla o slide da hero e o combo selecionado.
 - `app/admin/page.tsx`: login protegido e dashboard administrativo inicial.
 - `app/admin/actions.ts`: ações de login e logout no servidor.
+- `components/admin/modules/`: módulos de dashboard, pedidos, catálogo e cupons, exibidos dentro da rota única `/admin`.
 - `app/layout.tsx`: layout raiz, metadados, idioma e fontes Next.
 - `app/globals.css`: paleta, tokens Tailwind e estilos globais.
 - `components/menu/menu-data.tsx`: produtos usados na hero e combos exibidos no catálogo.

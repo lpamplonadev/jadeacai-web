@@ -1,40 +1,19 @@
-import { ArrowUpRightIcon, SignOutIcon } from "@phosphor-icons/react/dist/ssr";
+import { SignOutIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { connection } from "next/server";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
+import { CatalogModule } from "@/components/admin/modules/catalog-module";
+import { CouponsModule } from "@/components/admin/modules/coupons-module";
+import { DashboardModule } from "@/components/admin/modules/dashboard-module";
+import { OrdersModule } from "@/components/admin/modules/orders-module";
 import { logoutAction } from "@/app/admin/actions";
 import { hasValidAdminSession, isAdminAuthConfigured } from "@/lib/admin-auth";
 
-const dashboardMetrics = [
-  {
-    label: "Pedidos hoje",
-    value: "—",
-    detail: "Aguardando conexão administrativa",
-  },
-  {
-    label: "Aguardando preparo",
-    value: "—",
-    detail: "Aguardando conexão administrativa",
-  },
-  {
-    label: "Em produção",
-    value: "—",
-    detail: "Aguardando conexão administrativa",
-  },
-  {
-    label: "Concluídos hoje",
-    value: "—",
-    detail: "Aguardando conexão administrativa",
-  },
-];
-
-const orderStatuses = [
-  "Recebido",
-  "Preparando",
-  "Pronto",
-  "Saiu para entrega",
-  "Entregue",
-  "Finalizado",
+const adminModules = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "pedidos", label: "Pedidos" },
+  { id: "catalogo", label: "Catálogo" },
+  { id: "cupons", label: "Cupons" },
 ];
 
 export default async function AdminPage() {
@@ -109,26 +88,15 @@ export default async function AdminPage() {
           <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#929289]">
             Operação
           </p>
-          <nav aria-label="Navegação administrativa" className="mt-3 space-y-1">
-            <Link
-              href="/admin"
-              aria-current="page"
-              className="flex min-h-10 items-center rounded-md border-l-2 border-[#8b1a2e] bg-[#f8eeee] px-3 text-sm font-bold text-[#731a2a]"
-            >
-              Visão geral
-            </Link>
-            {["Pedidos", "Catálogo", "Cupons"].map((item) => (
-              <span
-                key={item}
-                aria-disabled="true"
-                className="flex min-h-10 cursor-not-allowed items-center justify-between rounded-md px-3 text-sm font-semibold text-[#96968d]"
-                title="Disponível quando as rotas administrativas da API forem implementadas"
+          <nav aria-label="Módulos administrativos" className="mt-3 space-y-1">
+            {adminModules.map((module, index) => (
+              <Link
+                key={module.id}
+                href={`#${module.id}`}
+                className={`flex min-h-10 items-center rounded-md px-3 text-sm font-bold transition-colors hover:bg-[#f8eeee] hover:text-[#731a2a] ${index === 0 ? "border-l-2 border-[#8b1a2e] bg-[#f8eeee] text-[#731a2a]" : "text-[#696960]"}`}
               >
-                {item}
-                <span className="text-[10px] font-bold uppercase tracking-wide">
-                  Em breve
-                </span>
-              </span>
+                {module.label}
+              </Link>
             ))}
           </nav>
           <div className="mt-auto border-t border-[#e8e8e2] pt-4">
@@ -165,99 +133,26 @@ export default async function AdminPage() {
             </form>
           </header>
 
-          <div className="mt-6 flex items-start gap-3 border-l-[3px] border-[#c78226] bg-[#fff8eb] px-4 py-3.5 text-sm leading-6 text-[#624717]">
-            <ArrowUpRightIcon
-              aria-hidden="true"
-              className="mt-1 shrink-0"
-              size={17}
-            />
-            <p>
-              Login protegido e ativo. Para carregar pedidos e métricas reais, a
-              API precisa disponibilizar rotas administrativas autenticadas; por
-              enquanto, nenhum dado operacional é exibido.
-            </p>
-          </div>
+          <nav
+            aria-label="Módulos administrativos"
+            className="mb-8 grid grid-cols-4 gap-1 border-b border-[#deded7] pb-4 md:hidden"
+          >
+            {adminModules.map((module) => (
+              <Link
+                key={module.id}
+                href={`#${module.id}`}
+                className="flex min-h-10 items-center justify-center rounded-md px-1 text-center text-xs font-bold text-[#696960] hover:bg-[#f8eeee] hover:text-[#731a2a]"
+              >
+                {module.label}
+              </Link>
+            ))}
+          </nav>
 
-          <section aria-label="Indicadores do dia" className="mt-7">
-            <div className="mb-3 flex items-end justify-between gap-3">
-              <h2 className="text-base font-extrabold">Hoje</h2>
-              <span className="text-xs font-medium text-[#77776e]">
-                Indicadores indisponíveis até a integração da API
-              </span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {dashboardMetrics.map((metric, index) => (
-                <article
-                  key={metric.label}
-                  className="border border-[#e2e2dc] bg-white p-4"
-                >
-                  <p className="text-xs font-bold text-[#73736a]">
-                    {metric.label}
-                  </p>
-                  <p
-                    className={`mt-3 text-3xl font-black ${index === 1 ? "text-[#a34b29]" : "text-[#292923]"}`}
-                  >
-                    {metric.value}
-                  </p>
-                  <p className="mt-2 text-[11px] leading-4 text-[#898980]">
-                    {metric.detail}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-            <section className="border border-[#e2e2dc] bg-white">
-              <div className="flex items-center justify-between gap-3 border-b border-[#e8e8e2] px-4 py-4 sm:px-5">
-                <div>
-                  <h2 className="font-extrabold">Pedidos recentes</h2>
-                  <p className="mt-1 text-xs text-[#77776e]">
-                    Atualização disponível após criar a rota de listagem
-                  </p>
-                </div>
-                <span className="rounded-sm bg-[#f0f0eb] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#77776e]">
-                  Sem dados
-                </span>
-              </div>
-              <div className="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f8eeee] text-[#8b1a2e]">
-                  <span className="text-lg font-black">0</span>
-                </span>
-                <h3 className="mt-4 text-sm font-extrabold">
-                  Aguardando conexão com os pedidos
-                </h3>
-                <p className="mt-2 max-w-md text-xs leading-5 text-[#77776e]">
-                  O backend precisa oferecer uma rota protegida para consultar
-                  pedidos salvos e atualizar seus status.
-                </p>
-              </div>
-            </section>
-
-            <section className="border border-[#e2e2dc] bg-white">
-              <div className="border-b border-[#e8e8e2] px-4 py-4">
-                <h2 className="font-extrabold">Fluxo dos pedidos</h2>
-                <p className="mt-1 text-xs text-[#77776e]">
-                  Contagens vindas da API
-                </p>
-              </div>
-              <ol className="divide-y divide-[#eeeeea] px-4">
-                {orderStatuses.map((status, index) => (
-                  <li
-                    key={status}
-                    className="flex min-h-11 items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="flex items-center gap-2.5 font-semibold text-[#55554e]">
-                      <span
-                        className={`h-2 w-2 rounded-full ${index === 0 ? "bg-[#c78226]" : index === 1 ? "bg-[#8b1a2e]" : "bg-[#b8b8af]"}`}
-                      />
-                      {status}
-                    </span>
-                    <span className="text-xs font-bold text-[#929289]">—</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
+          <div className="mt-6 space-y-12">
+            <DashboardModule />
+            <OrdersModule />
+            <CatalogModule />
+            <CouponsModule />
           </div>
         </section>
       </div>
