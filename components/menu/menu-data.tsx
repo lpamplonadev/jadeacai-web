@@ -17,9 +17,11 @@ export type Product = {
 };
 
 export type MenuCombo = {
+  id: string;
   name: string;
   size: string;
   price: string;
+  priceCents: number;
   includedToppings: number;
   includedFruits: number;
   includedExtras: number;
@@ -73,9 +75,11 @@ export const products: Product[] = [
 
 export const combos: MenuCombo[] = [
   {
+    id: "combo-300",
     name: "Combo 300 ml",
     size: "300 ml",
     price: "R$ 12,90",
+    priceCents: 1290,
     includedToppings: 3,
     includedFruits: 0,
     includedExtras: 1,
@@ -85,9 +89,11 @@ export const combos: MenuCombo[] = [
     imageAlt: "Açaí servido com acompanhamentos",
   },
   {
+    id: "combo-500",
     name: "Combo 500 ml",
     size: "500 ml",
     price: "R$ 16,90",
+    priceCents: 1690,
     includedToppings: 3,
     includedFruits: 1,
     includedExtras: 1,
@@ -97,9 +103,11 @@ export const combos: MenuCombo[] = [
     imageAlt: "Frutas frescas para acompanhar açaí",
   },
   {
+    id: "combo-770",
     name: "Combo 770 ml",
     size: "770 ml",
     price: "R$ 19,90",
+    priceCents: 1990,
     includedToppings: 5,
     includedFruits: 1,
     includedExtras: 1,
@@ -109,9 +117,11 @@ export const combos: MenuCombo[] = [
     imageAlt: "Bowl generoso de açaí com frutas e acompanhamentos",
   },
   {
+    id: "combo-marmita",
     name: "Combo Marmita",
     size: "1 litro",
     price: "R$ 28,90",
+    priceCents: 2890,
     includedToppings: 6,
     includedFruits: 2,
     includedExtras: 1,

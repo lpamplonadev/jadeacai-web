@@ -22,6 +22,8 @@ type DeliveryCheckoutFormProps = {
   onBack: () => void;
   onSubmit: () => void;
   orderTotal: number;
+  isSubmitting: boolean;
+  orderFeedback: { type: "success" | "error"; message: string } | null;
 };
 
 const inputClassName =
@@ -39,6 +41,8 @@ export function DeliveryCheckoutForm({
   onBack,
   onSubmit,
   orderTotal,
+  isSubmitting,
+  orderFeedback,
 }: DeliveryCheckoutFormProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -243,6 +247,14 @@ export function DeliveryCheckoutForm({
       </div>
 
       <div className="flex flex-col-reverse gap-3 border-t border-blush/70 pt-5 sm:flex-row sm:justify-between">
+        {orderFeedback && (
+          <p
+            role={orderFeedback.type === "error" ? "alert" : "status"}
+            className={`basis-full text-sm font-semibold ${orderFeedback.type === "error" ? "text-destructive" : "text-green-800"}`}
+          >
+            {orderFeedback.message}
+          </p>
+        )}
         <button
           type="button"
           onClick={onBack}
@@ -252,10 +264,11 @@ export function DeliveryCheckoutForm({
         </button>
         <button
           type="submit"
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-whatsapp px-5 text-sm font-extrabold text-white transition-colors hover:bg-whatsapp/90"
+          disabled={isSubmitting}
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-whatsapp px-5 text-sm font-extrabold text-white transition-colors hover:bg-whatsapp/90 disabled:cursor-wait disabled:opacity-60"
         >
           <WhatsappLogoIcon aria-hidden="true" size={20} weight="fill" />
-          Enviar pedido pelo WhatsApp
+          {isSubmitting ? "Enviando pedido..." : "Enviar pedido pelo WhatsApp"}
         </button>
       </div>
     </form>

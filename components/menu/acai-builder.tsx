@@ -29,6 +29,7 @@ import {
 } from "@/components/menu/acai-builder-data";
 import { OrderSummary } from "@/components/menu/order-summary";
 import type { MenuCombo } from "@/components/menu/menu-data";
+import { createOrder } from "@/lib/jade-api";
 
 export function AcaiBuilder({
   selectedCombo,
@@ -39,6 +40,11 @@ export function AcaiBuilder({
 }) {
   const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
   const [builderError, setBuilderError] = useState("");
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderFeedback, setOrderFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [deliveryDetails, setDeliveryDetails] = useState<DeliveryDetails>({
     customerName: "",
     phone: "",
@@ -108,7 +114,7 @@ export function AcaiBuilder({
     condimentPositions.find((item) => item.id === selectedCondimentPosition) ??
     null;
   const comboPrice = selectedCombo
-    ? Number(selectedCombo.price.replace(/[^\d,]/g, "").replace(",", "."))
+    ? selectedCombo.priceCents / 100
     : (size?.price ?? 0);
   const total =
     comboPrice +
@@ -205,6 +211,7 @@ export function AcaiBuilder({
   function goToStep(step: 1 | 2) {
     setCheckoutStep(step);
     setBuilderError("");
+    setOrderFeedback(null);
     requestAnimationFrame(() => {
       document
         .getElementById("monte-seu-acai")
@@ -233,23 +240,23 @@ export function AcaiBuilder({
     `• Sabor: ${flavor?.name ?? "não selecionado"}`,
     ...(selectedCombo ? [`• Combo: ${selectedCombo.name}`] : []),
     `• Tamanho: ${size?.name ?? "não selecionado"}`,
-    `• Acompanhamentos (${currency.format(toppingsTotal)}): ${
+    `• Acompanhamentos (${currency.format(toppingsTotal)}):\n${
       toppings
         .filter((item) => selectedToppings.includes(item.id))
-        .map((item) => item.name)
-        .join(", ") || "nenhum"
+        .map((item) => `  - ${item.name}`)
+        .join("\n") || "  - nenhum"
     }`,
     `• Calda (grátis): ${
       sauces.find((item) => item.id === selectedSauce)?.name ?? "nenhuma"
     }`,
     `• Posição dos condimentos: ${condimentPosition ? `${condimentPosition.name}${condimentPosition.price > 0 ? ` (+ ${currency.format(condimentPosition.price)})` : " (incluído)"}` : "não selecionada"}`,
-    `• Frutas (${currency.format(fruitsTotal)}): ${
+    `• Frutas (${currency.format(fruitsTotal)}):\n${
       fruits
         .filter((item) => selectedFruits.includes(item.id))
-        .map((item) => item.name)
-        .join(", ") || "nenhuma"
+        .map((item) => `  - ${item.name}`)
+        .join("\n") || "  - nenhuma"
     }`,
-    `• Extras: ${selectedExtrasList.map((item, index) => `${item.name}${index < extrasAllowance ? " (grátis)" : ` (+ ${currency.format(item.price)})`}`).join(", ") || "nenhum"}`,
+    `• Extras:\n${selectedExtrasList.map((item, index) => `  - ${item.name}${index < extrasAllowance ? " (grátis)" : ` (+ ${currency.format(item.price)})`}`).join("\n") || "  - nenhum"}`,
     `• Taxa de entrega: ${currency.format(deliveryFee)}`,
     `• Total estimado: ${currency.format(total)}`,
     ...(deliveryDetails.notes.trim()
@@ -257,7 +264,7 @@ export function AcaiBuilder({
       : []),
   ].join("\n");
 
-  function submitDeliveryOrder() {
+  async function submitDeliveryOrder() {
     const paymentNames: Record<string, string> = {
       pix: "Pix",
       cash: "Dinheiro",
@@ -287,6 +294,61 @@ export function AcaiBuilder({
     ].join("\n");
     const url = `https://wa.me/5521990174473?text=${encodeURIComponent(deliveryMessage)}`;
     window.open(url, "_blank", "noopener,noreferrer");
+
+    setIsSubmittingOrder(true);
+    setOrderFeedback(null);
+    try {
+      const response = await createOrder({
+        customer: {
+          name: deliveryDetails.customerName,
+          phone: deliveryDetails.phone,
+        },
+        acai: {
+          flavorId: selectedFlavor ?? "",
+          sizeId: size?.id ?? "",
+          comboId: selectedCombo?.id ?? "",
+          toppingIds: selectedToppings,
+          sauceId: selectedSauce ?? "none",
+          condimentPositionId: selectedCondimentPosition ?? "bottom",
+          fruitIds: selectedFruits,
+          extraIds: selectedExtras,
+        },
+        delivery: {
+          postalCode: deliveryDetails.postalCode,
+          street: deliveryDetails.street,
+          number: deliveryDetails.number,
+          neighborhood: deliveryDetails.neighborhood,
+          complement: deliveryDetails.complement,
+          reference: deliveryDetails.reference,
+        },
+        payment: {
+          method: deliveryDetails.paymentMethod as "pix" | "cash" | "card",
+          needsChange:
+            deliveryDetails.paymentMethod === "cash" &&
+            deliveryDetails.needsChange,
+          changeForCents: deliveryDetails.needsChange
+            ? Math.round(Number(deliveryDetails.changeFor) * 100)
+            : 0,
+        },
+        notes: deliveryDetails.notes,
+        estimatedTotalCents: Math.round(total * 100),
+      });
+
+      setOrderFeedback({
+        type: "success",
+        message: response.persisted
+          ? "Pedido registrado. Confira e envie a mensagem aberta no WhatsApp."
+          : "A API recebeu o pedido, mas ainda não o armazena. Confira e envie a mensagem no WhatsApp para concluir.",
+      });
+    } catch {
+      setOrderFeedback({
+        type: "error",
+        message:
+          "Não foi possível enviar o pedido à API. A mensagem abriu no WhatsApp; envie por lá para encaminhar seu pedido.",
+      });
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   }
 
   return (
@@ -305,7 +367,7 @@ export function AcaiBuilder({
           <p className="mt-3 text-base leading-7 text-crimson/75">
             {checkoutStep === 1
               ? "Escolha sabor, tamanho e complementos. O valor acompanha suas escolhas."
-              : "Informe onde entregar e como prefere pagar. Seus dados seguem no pedido pelo WhatsApp."}
+              : "Informe onde entregar e como prefere pagar. A solicitação vai para a API e a mensagem abre no WhatsApp."}
           </p>
           <ol
             aria-label="Etapas do pedido"
@@ -562,6 +624,8 @@ export function AcaiBuilder({
               onBack={() => goToStep(1)}
               onSubmit={submitDeliveryOrder}
               orderTotal={total}
+              isSubmitting={isSubmittingOrder}
+              orderFeedback={orderFeedback}
             />
           )}
 

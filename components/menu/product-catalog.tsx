@@ -5,9 +5,22 @@ import type { MenuCombo } from "@/components/menu/menu-data";
 type ProductCatalogProps = {
   combos: MenuCombo[];
   onChooseCombo: (combo: MenuCombo) => void;
+  apiStatus: "checking" | "online" | "offline";
+  catalogError: boolean;
 };
 
-export function ProductCatalog({ combos, onChooseCombo }: ProductCatalogProps) {
+export function ProductCatalog({
+  combos,
+  onChooseCombo,
+  apiStatus,
+  catalogError,
+}: ProductCatalogProps) {
+  const apiStatusText = {
+    checking: "Conectando à API",
+    online: "API conectada",
+    offline: "API indisponível",
+  }[apiStatus];
+
   return (
     <section
       id="catalogo"
@@ -22,15 +35,23 @@ export function ProductCatalog({ combos, onChooseCombo }: ProductCatalogProps) {
             Combos Jade
           </h2>
         </div>
-        <span className="text-sm font-medium text-coral sm:text-base">
-          {combos.length} tamanhos para escolher
-        </span>
+        <div className="text-sm font-medium text-coral sm:text-base">
+          <p>{combos.length} tamanhos para escolher</p>
+          <p
+            role="status"
+            className={`mt-1 text-xs ${apiStatus === "online" ? "text-green-800" : "text-crimson/75"}`}
+          >
+            {catalogError
+              ? "Exibindo cardápio salvo neste site"
+              : apiStatusText}
+          </p>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {combos.map((combo) => {
           return (
             <article
-              key={combo.name}
+              key={combo.id}
               className="group overflow-hidden rounded-md border border-blush/70 bg-white transition-shadow hover:shadow-[0_12px_32px_rgba(107,18,34,0.10)]"
             >
               <div className="relative h-48 overflow-hidden bg-petal">
