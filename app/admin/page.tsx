@@ -2,6 +2,7 @@ import { SignOutIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { connection } from "next/server";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
+import { MobileAdminMenu } from "@/components/admin/mobile-admin-menu";
 import { CatalogModule } from "@/components/admin/modules/catalog-module";
 import { CouponsModule } from "@/components/admin/modules/coupons-module";
 import { DashboardModule } from "@/components/admin/modules/dashboard-module";
@@ -78,7 +79,7 @@ export default async function AdminPage() {
   return (
     <main className="min-h-screen bg-[#f3f3ef] text-[#292923]">
       <div className="mx-auto flex min-h-screen max-w-[1440px]">
-        <aside className="hidden w-60 shrink-0 border-r border-[#e3e3dc] bg-white px-5 py-7 md:flex md:flex-col">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 self-start border-r border-[#e3e3dc] bg-white px-5 py-7 md:flex md:flex-col">
           <Link
             href="/"
             className="text-sm font-black tracking-wide text-[#731a2a]"
@@ -112,7 +113,7 @@ export default async function AdminPage() {
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8 lg:px-11">
+        <section className="min-w-0 flex-1 px-5 py-6 pb-24 sm:px-8 sm:py-8 sm:pb-24 lg:px-11 md:pb-8">
           <header className="flex items-start justify-between gap-4 border-b border-[#deded7] pb-6">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8b1a2e]">
@@ -122,31 +123,7 @@ export default async function AdminPage() {
                 Visão geral
               </h1>
             </div>
-            <form action={logoutAction} className="md:hidden">
-              <button
-                aria-label="Sair do painel"
-                title="Sair do painel"
-                className="flex h-10 w-10 items-center justify-center rounded-md border border-[#deded7] bg-white text-[#731a2a]"
-              >
-                <SignOutIcon aria-hidden="true" size={18} />
-              </button>
-            </form>
           </header>
-
-          <nav
-            aria-label="Módulos administrativos"
-            className="mb-8 grid grid-cols-4 gap-1 border-b border-[#deded7] pb-4 md:hidden"
-          >
-            {adminModules.map((module) => (
-              <Link
-                key={module.id}
-                href={`#${module.id}`}
-                className="flex min-h-10 items-center justify-center rounded-md px-1 text-center text-xs font-bold text-[#696960] hover:bg-[#f8eeee] hover:text-[#731a2a]"
-              >
-                {module.label}
-              </Link>
-            ))}
-          </nav>
 
           <div className="mt-6 space-y-12">
             <DashboardModule />
@@ -156,6 +133,7 @@ export default async function AdminPage() {
           </div>
         </section>
       </div>
+      <MobileAdminMenu />
     </main>
   );
 }
