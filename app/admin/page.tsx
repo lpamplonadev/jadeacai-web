@@ -6,10 +6,26 @@ import { logoutAction } from "@/app/admin/actions";
 import { hasValidAdminSession, isAdminAuthConfigured } from "@/lib/admin-auth";
 
 const dashboardMetrics = [
-  { label: "Pedidos hoje", value: "—", detail: "Aguardando conexão administrativa" },
-  { label: "Aguardando preparo", value: "—", detail: "Aguardando conexão administrativa" },
-  { label: "Em produção", value: "—", detail: "Aguardando conexão administrativa" },
-  { label: "Concluídos hoje", value: "—", detail: "Aguardando conexão administrativa" },
+  {
+    label: "Pedidos hoje",
+    value: "—",
+    detail: "Aguardando conexão administrativa",
+  },
+  {
+    label: "Aguardando preparo",
+    value: "—",
+    detail: "Aguardando conexão administrativa",
+  },
+  {
+    label: "Em produção",
+    value: "—",
+    detail: "Aguardando conexão administrativa",
+  },
+  {
+    label: "Concluídos hoje",
+    value: "—",
+    detail: "Aguardando conexão administrativa",
+  },
 ];
 
 const orderStatuses = [
@@ -33,7 +49,11 @@ export default async function AdminPage() {
         <section className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[#731a2a] px-7 py-8 text-white md:min-h-screen md:px-12 md:py-12">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full border border-white/10" />
           <div className="absolute -bottom-36 -left-24 h-96 w-96 rounded-full border border-white/10" />
-          <Link href="/" className="relative sm:text-2xl text-center text-lg font-extrabold tracking-wide" style={{ fontFamily: "Pacifico, cursive"}}>
+          <Link
+            href="/"
+            className="relative sm:text-2xl text-center text-lg font-extrabold tracking-wide"
+            style={{ fontFamily: "Pacifico, cursive" }}
+          >
             Jade Açaí
           </Link>
           <div className="relative my-10 max-w-md md:my-0">
@@ -80,7 +100,10 @@ export default async function AdminPage() {
     <main className="min-h-screen bg-[#f3f3ef] text-[#292923]">
       <div className="mx-auto flex min-h-screen max-w-[1440px]">
         <aside className="hidden w-60 shrink-0 border-r border-[#e3e3dc] bg-white px-5 py-7 md:flex md:flex-col">
-          <Link href="/" className="text-sm font-black tracking-wide text-[#731a2a]">
+          <Link
+            href="/"
+            className="text-sm font-black tracking-wide text-[#731a2a]"
+          >
             JADE <span className="font-semibold text-[#8b8b80]">AÇAÍ</span>
           </Link>
           <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#929289]">
@@ -94,11 +117,7 @@ export default async function AdminPage() {
             >
               Visão geral
             </Link>
-            {[
-              "Pedidos",
-              "Catálogo",
-              "Cupons",
-            ].map((item) => (
+            {["Pedidos", "Catálogo", "Cupons"].map((item) => (
               <span
                 key={item}
                 aria-disabled="true"
@@ -147,11 +166,15 @@ export default async function AdminPage() {
           </header>
 
           <div className="mt-6 flex items-start gap-3 border-l-[3px] border-[#c78226] bg-[#fff8eb] px-4 py-3.5 text-sm leading-6 text-[#624717]">
-            <ArrowUpRightIcon aria-hidden="true" className="mt-1 shrink-0" size={17} />
+            <ArrowUpRightIcon
+              aria-hidden="true"
+              className="mt-1 shrink-0"
+              size={17}
+            />
             <p>
-              Login protegido e ativo. Para carregar pedidos e métricas reais,
-              a API precisa disponibilizar rotas administrativas autenticadas;
-              por enquanto, nenhum dado operacional é exibido.
+              Login protegido e ativo. Para carregar pedidos e métricas reais, a
+              API precisa disponibilizar rotas administrativas autenticadas; por
+              enquanto, nenhum dado operacional é exibido.
             </p>
           </div>
 

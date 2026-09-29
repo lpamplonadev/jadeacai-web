@@ -45,13 +45,17 @@ export async function createAdminSession() {
 
   const expiry = String(Date.now() + sessionDurationSeconds * 1000);
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName, `${expiry}.${signExpiry(expiry, configuration.secret)}`, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/admin",
-    maxAge: sessionDurationSeconds,
-  });
+  cookieStore.set(
+    sessionCookieName,
+    `${expiry}.${signExpiry(expiry, configuration.secret)}`,
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/admin",
+      maxAge: sessionDurationSeconds,
+    },
+  );
 }
 
 export async function clearAdminSession() {
