@@ -2,6 +2,7 @@ import { SignOutIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { connection } from "next/server";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
+import { DesktopAdminNavigation } from "@/components/admin/desktop-admin-navigation";
 import { MobileAdminMenu } from "@/components/admin/mobile-admin-menu";
 import { CatalogModule } from "@/components/admin/modules/catalog-module";
 import { CouponsModule } from "@/components/admin/modules/coupons-module";
@@ -9,13 +10,6 @@ import { DashboardModule } from "@/components/admin/modules/dashboard-module";
 import { OrdersModule } from "@/components/admin/modules/orders-module";
 import { logoutAction } from "@/app/admin/actions";
 import { hasValidAdminSession, isAdminAuthConfigured } from "@/lib/admin-auth";
-
-const adminModules = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "pedidos", label: "Pedidos" },
-  { id: "catalogo", label: "Catálogo" },
-  { id: "cupons", label: "Cupons" },
-];
 
 export default async function AdminPage() {
   await connection();
@@ -79,33 +73,23 @@ export default async function AdminPage() {
   return (
     <main className="min-h-screen bg-[#f3f3ef] text-[#292923]">
       <div className="mx-auto flex min-h-screen max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 self-start border-r border-[#e3e3dc] bg-white px-5 py-7 md:flex md:flex-col">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 self-start border-r border-coral/40 bg-crimson px-5 py-7 md:flex md:flex-col">
           <Link
             href="/"
-            className="text-sm font-black tracking-wide text-[#731a2a]"
+            className="text-sm font-black tracking-wide text-petal"
           >
-            JADE <span className="font-semibold text-[#8b8b80]">AÇAÍ</span>
+            JADE <span className="font-semibold text-petal">AÇAÍ</span>
           </Link>
-          <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#929289]">
+          <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-petal">
             Operação
           </p>
-          <nav aria-label="Módulos administrativos" className="mt-3 space-y-1">
-            {adminModules.map((module, index) => (
-              <Link
-                key={module.id}
-                href={`#${module.id}`}
-                className={`flex min-h-10 items-center rounded-md px-3 text-sm font-bold transition-colors hover:bg-[#f8eeee] hover:text-[#731a2a] ${index === 0 ? "border-l-2 border-[#8b1a2e] bg-[#f8eeee] text-[#731a2a]" : "text-[#696960]"}`}
-              >
-                {module.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="mt-auto border-t border-[#e8e8e2] pt-4">
-            <p className="px-3 text-xs font-semibold text-[#77776e]">
+          <DesktopAdminNavigation />
+          <div className="mt-auto border-t border-coral/40 pt-4">
+            <p className="px-3 text-xs font-semibold text-petal">
               Sessão protegida
             </p>
             <form action={logoutAction}>
-              <button className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-sm font-bold text-[#731a2a] hover:bg-[#f8eeee]">
+              <button className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-sm font-bold text-petal transition-colors hover:bg-coral hover:text-crimson">
                 <SignOutIcon aria-hidden="true" size={17} />
                 Sair do painel
               </button>
