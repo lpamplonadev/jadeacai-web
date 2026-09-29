@@ -1,6 +1,6 @@
 # Jade Açaí
 
-Landing page de combos e montagem personalizada de açaí. O pedido é montado no navegador e enviado ao WhatsApp comercial; não há backend, banco de dados nem painel administrativo implementados.
+Landing page de combos e montagem personalizada de açaí, integrada à API para carregar o catálogo e registrar pedidos. A rota `/admin` contém o acesso protegido e a primeira estrutura do painel; métricas e gestão de pedidos aguardam endpoints administrativos no backend.
 
 ## Requisitos
 
@@ -16,6 +16,20 @@ npm run dev
 
 Abra a URL indicada pelo Next.js (normalmente http://localhost:3000). Se a porta estiver ocupada, o Next escolhe outra porta disponível. O terminal pode avisar que já há outro servidor de desenvolvimento ativo para o mesmo projeto; nesse caso, use a URL do servidor existente.
 
+## Acesso administrativo
+
+Configure estas variáveis privadas no `.env.local` para desenvolvimento e no ambiente do serviço frontend no Render para produção:
+
+```dotenv
+ADMIN_USERNAME=seu-usuario-administrativo
+ADMIN_PASSWORD=sua-senha-forte
+ADMIN_SESSION_SECRET=chave-aleatoria-com-pelo-menos-32-caracteres
+```
+
+Gere uma chave de sessão com `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Não use o prefixo `NEXT_PUBLIC_` nem compartilhe ou versione essas credenciais. Depois de alterar as variáveis de produção, faça novo deploy do frontend.
+
+O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. Isso protege a interface `/admin`; antes de conectar dados administrativos, a API também precisa autenticar e autorizar as rotas de leitura e alteração. CORS sozinho não substitui autenticação.
+
 ## Verificações
 
 ```bash
@@ -27,6 +41,8 @@ npm run build
 ## Estrutura principal
 
 - `app/page.tsx`: compõe a landing e controla o slide da hero e o combo selecionado.
+- `app/admin/page.tsx`: login protegido e dashboard administrativo inicial.
+- `app/admin/actions.ts`: ações de login e logout no servidor.
 - `app/layout.tsx`: layout raiz, metadados, idioma e fontes Next.
 - `app/globals.css`: paleta, tokens Tailwind e estilos globais.
 - `components/menu/menu-data.tsx`: produtos usados na hero e combos exibidos no catálogo.
@@ -43,6 +59,7 @@ npm run build
 - `components/menu/mobile-navigation.tsx`: navegação móvel antiga, ainda disponível para uma futura experiência logada; não é renderizada pela landing atual.
 - `components/ui/`: componentes UI gerados/usados pelo projeto.
 - `lib/utils.ts`: utilitários compartilhados, incluindo `cn`.
+- `lib/admin-auth.ts`: validação de credenciais e sessão administrativa assinada.
 - `public/`: arquivos estáticos locais.
 
 Para regras de negócio, fluxo de compra, convenções visuais, pendências e integração futura com API/Admin, consulte [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
