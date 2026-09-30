@@ -93,8 +93,14 @@ export function CatalogEditorDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const item = editor.type === "item" ? editor.item : undefined;
   const combo = editor.type === "combo" ? editor.combo : undefined;
+  const linkedItemIDs = new Set(
+    (combo?.items ?? []).map((comboItem) => comboItem.itemId),
+  );
   const activeItems = items.filter(
-    (catalogItem) => catalogItem.available && !catalogItem.deletedAt,
+    (catalogItem) =>
+      (catalogItem.available && !catalogItem.deletedAt) ||
+      linkedItemIDs.has(catalogItem.id) ||
+      catalogItem.id === combo?.sizeItemId,
   );
   const sizeItems = activeItems.filter(
     (catalogItem) => catalogItem.kind === "size",
@@ -357,7 +363,7 @@ export function CatalogEditorDialog({
                   <option value="">Selecione um tamanho</option>
                   {sizeItems.map((size) => (
                     <option key={size.id} value={size.id}>
-                      {size.name}
+                      {size.name}{!size.available || size.deletedAt ? " (inativo)" : ""}
                     </option>
                   ))}
                 </select>
@@ -478,6 +484,10 @@ export function CatalogEditorDialog({
                                   checked={
                                     selectedItems[catalogItem.id] !== undefined
                                   }
+                                  disabled={
+                                    (!catalogItem.available || Boolean(catalogItem.deletedAt)) &&
+                                    selectedItems[catalogItem.id] === undefined
+                                  }
                                   onChange={(event) =>
                                     updateSelectedItem(
                                       catalogItem.id,
@@ -487,7 +497,7 @@ export function CatalogEditorDialog({
                                   className="h-4 w-4 shrink-0 accent-[#8b1a2e]"
                                 />
                                 <span className="truncate">
-                                  {catalogItem.name}
+                                  {catalogItem.name}{!catalogItem.available || catalogItem.deletedAt ? " (inativo)" : ""}
                                 </span>
                               </label>
                               {selectedItems[catalogItem.id] !== undefined && (
