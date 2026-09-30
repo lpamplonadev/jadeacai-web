@@ -93,9 +93,15 @@ export function CatalogEditorDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const item = editor.type === "item" ? editor.item : undefined;
   const combo = editor.type === "combo" ? editor.combo : undefined;
-  const activeItems = items.filter((catalogItem) => catalogItem.available && !catalogItem.deletedAt);
-  const sizeItems = activeItems.filter((catalogItem) => catalogItem.kind === "size");
-  const selectableItems = activeItems.filter((catalogItem) => catalogItem.kind !== "size");
+  const activeItems = items.filter(
+    (catalogItem) => catalogItem.available && !catalogItem.deletedAt,
+  );
+  const sizeItems = activeItems.filter(
+    (catalogItem) => catalogItem.kind === "size",
+  );
+  const selectableItems = activeItems.filter(
+    (catalogItem) => catalogItem.kind !== "size",
+  );
   const [kind, setKind] = useState<CatalogItemKind>(item?.kind ?? "topping");
   const [name, setName] = useState(item?.name ?? combo?.name ?? "");
   const [price, setPrice] = useState(
@@ -122,7 +128,10 @@ export function CatalogEditorDialog({
   const [imageAlt, setImageAlt] = useState(combo?.imageAlt ?? "");
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
     Object.fromEntries(
-      (combo?.items ?? []).map((comboItem) => [comboItem.itemId, comboItem.quantity]),
+      (combo?.items ?? []).map((comboItem) => [
+        comboItem.itemId,
+        comboItem.quantity,
+      ]),
     ),
   );
   const [saving, setSaving] = useState(false);
@@ -146,7 +155,14 @@ export function CatalogEditorDialog({
         : combo
           ? `/admin/api/catalog/combos/${combo.id}`
           : "/admin/api/catalog/combos";
-    const method = editor.type === "item" ? (item ? "PATCH" : "POST") : combo ? "PATCH" : "POST";
+    const method =
+      editor.type === "item"
+        ? item
+          ? "PATCH"
+          : "POST"
+        : combo
+          ? "PATCH"
+          : "POST";
     const priceCents = toPriceCents(price);
 
     const body =
@@ -183,9 +199,9 @@ export function CatalogEditorDialog({
         body: JSON.stringify(body),
       });
       if (!response.ok) {
-        const result = (await response.json().catch(() => null)) as
-          | { error?: string }
-          | null;
+        const result = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         throw new Error(result?.error ?? "Não foi possível salvar o catálogo.");
       }
       onSaved();
@@ -254,11 +270,15 @@ export function CatalogEditorDialog({
                 Tipo
                 <select
                   value={kind}
-                  onChange={(event) => setKind(event.target.value as CatalogItemKind)}
+                  onChange={(event) =>
+                    setKind(event.target.value as CatalogItemKind)
+                  }
                   className={inputClassName}
                 >
                   {Object.entries(catalogKindLabels).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -269,20 +289,47 @@ export function CatalogEditorDialog({
             )}
             <label className="block space-y-1.5 text-sm font-bold">
               Nome
-              <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} className={inputClassName} />
+              <input
+                required
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">
                 Preço ou adicional (R$)
-                <input required type="number" min="0" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} className={inputClassName} />
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
               <label className="block space-y-1.5 text-sm font-bold">
                 Ordem no catálogo
-                <input required type="number" min="0" step="1" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className={inputClassName} />
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
             </div>
             <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
-              <input type="checkbox" checked={available} onChange={(event) => setAvailable(event.target.checked)} className="h-4 w-4 accent-[#8b1a2e]" />
+              <input
+                type="checkbox"
+                checked={available}
+                onChange={(event) => setAvailable(event.target.checked)}
+                className="h-4 w-4 accent-[#8b1a2e]"
+              />
               Disponível na loja
             </label>
           </>
@@ -290,105 +337,213 @@ export function CatalogEditorDialog({
           <>
             <label className="block space-y-1.5 text-sm font-bold">
               Nome do combo
-              <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} className={inputClassName} />
+              <input
+                required
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">
                 Tamanho
-                <select required value={sizeItemId} onChange={(event) => setSizeItemId(event.target.value)} className={inputClassName}>
+                <select
+                  required
+                  value={sizeItemId}
+                  onChange={(event) => setSizeItemId(event.target.value)}
+                  className={inputClassName}
+                >
                   <option value="">Selecione um tamanho</option>
-                  {sizeItems.map((size) => <option key={size.id} value={size.id}>{size.name}</option>)}
+                  {sizeItems.map((size) => (
+                    <option key={size.id} value={size.id}>
+                      {size.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block space-y-1.5 text-sm font-bold">
                 Preço (R$)
-                <input required type="number" min="0" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} className={inputClassName} />
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-1.5 text-sm font-bold">
                 Acompanhamentos incluídos
-                <input type="number" min="0" value={includedToppings} onChange={(event) => setIncludedToppings(event.target.value)} className={inputClassName} />
+                <input
+                  type="number"
+                  min="0"
+                  value={includedToppings}
+                  onChange={(event) => setIncludedToppings(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
               <label className="block space-y-1.5 text-sm font-bold">
                 Frutas incluídas
-                <input type="number" min="0" value={includedFruits} onChange={(event) => setIncludedFruits(event.target.value)} className={inputClassName} />
+                <input
+                  type="number"
+                  min="0"
+                  value={includedFruits}
+                  onChange={(event) => setIncludedFruits(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
               <label className="block space-y-1.5 text-sm font-bold">
                 Extras incluídos
-                <input type="number" min="0" value={includedExtras} onChange={(event) => setIncludedExtras(event.target.value)} className={inputClassName} />
+                <input
+                  type="number"
+                  min="0"
+                  value={includedExtras}
+                  onChange={(event) => setIncludedExtras(event.target.value)}
+                  className={inputClassName}
+                />
               </label>
             </div>
             <label className="block space-y-1.5 text-sm font-bold">
               Destaque
-              <input maxLength={80} value={tag} onChange={(event) => setTag(event.target.value)} className={inputClassName} />
+              <input
+                maxLength={80}
+                value={tag}
+                onChange={(event) => setTag(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-bold">
               URL da imagem
-              <input type="url" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} className={inputClassName} />
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(event) => setImageUrl(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-bold">
               Texto alternativo da imagem
-              <input maxLength={180} value={imageAlt} onChange={(event) => setImageAlt(event.target.value)} className={inputClassName} />
+              <input
+                maxLength={180}
+                value={imageAlt}
+                onChange={(event) => setImageAlt(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <label className="block space-y-1.5 text-sm font-bold">
               Ordem no catálogo
-              <input type="number" min="0" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className={inputClassName} />
+              <input
+                type="number"
+                min="0"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+                className={inputClassName}
+              />
             </label>
             <fieldset className="space-y-3">
-              <legend className="text-sm font-black">Itens selecionados para o combo</legend>
-              {!selectableItems.length && <p className="text-sm text-[#77776e]">Cadastre itens ativos antes de montar um combo.</p>}
+              <legend className="text-sm font-black">
+                Itens selecionados para o combo
+              </legend>
+              {!selectableItems.length && (
+                <p className="text-sm text-[#77776e]">
+                  Cadastre itens ativos antes de montar um combo.
+                </p>
+              )}
               <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border border-[#e2e2dc] bg-white p-3">
-                {Object.entries(catalogKindLabels).filter(([itemKind]) => itemKind !== "size").map(([itemKind, label]) => {
-                  const group = selectableItems.filter((catalogItem) => catalogItem.kind === itemKind);
-                  if (!group.length) return null;
-                  return (
-                    <div key={itemKind}>
-                      <h3 className="mb-1 text-xs font-extrabold uppercase text-[#77776e]">{label}</h3>
-                      <ul className="divide-y divide-[#eeeeea]">
-                        {group.map((catalogItem) => (
-                          <li key={catalogItem.id} className="flex items-center justify-between gap-3 py-2">
-                            <label className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-                              <input
-                                type="checkbox"
-                                checked={selectedItems[catalogItem.id] !== undefined}
-                                onChange={(event) => updateSelectedItem(catalogItem.id, event.target.checked ? 1 : 0)}
-                                className="h-4 w-4 shrink-0 accent-[#8b1a2e]"
-                              />
-                              <span className="truncate">{catalogItem.name}</span>
-                            </label>
-                            {selectedItems[catalogItem.id] !== undefined && (
-                              <input
-                                aria-label={`Quantidade de ${catalogItem.name} no combo`}
-                                type="number"
-                                min="1"
-                                max="100"
-                                value={selectedItems[catalogItem.id]}
-                                onChange={(event) => updateSelectedItem(catalogItem.id, Number(event.target.value))}
-                                className="min-h-9 w-20 rounded-md border border-[#d6d6ce] px-2 text-sm"
-                              />
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
+                {Object.entries(catalogKindLabels)
+                  .filter(([itemKind]) => itemKind !== "size")
+                  .map(([itemKind, label]) => {
+                    const group = selectableItems.filter(
+                      (catalogItem) => catalogItem.kind === itemKind,
+                    );
+                    if (!group.length) return null;
+                    return (
+                      <div key={itemKind}>
+                        <h3 className="mb-1 text-xs font-extrabold uppercase text-[#77776e]">
+                          {label}
+                        </h3>
+                        <ul className="divide-y divide-[#eeeeea]">
+                          {group.map((catalogItem) => (
+                            <li
+                              key={catalogItem.id}
+                              className="flex items-center justify-between gap-3 py-2"
+                            >
+                              <label className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    selectedItems[catalogItem.id] !== undefined
+                                  }
+                                  onChange={(event) =>
+                                    updateSelectedItem(
+                                      catalogItem.id,
+                                      event.target.checked ? 1 : 0,
+                                    )
+                                  }
+                                  className="h-4 w-4 shrink-0 accent-[#8b1a2e]"
+                                />
+                                <span className="truncate">
+                                  {catalogItem.name}
+                                </span>
+                              </label>
+                              {selectedItems[catalogItem.id] !== undefined && (
+                                <input
+                                  aria-label={`Quantidade de ${catalogItem.name} no combo`}
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={selectedItems[catalogItem.id]}
+                                  onChange={(event) =>
+                                    updateSelectedItem(
+                                      catalogItem.id,
+                                      Number(event.target.value),
+                                    )
+                                  }
+                                  className="min-h-9 w-20 rounded-md border border-[#d6d6ce] px-2 text-sm"
+                                />
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
               </div>
             </fieldset>
             <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
-              <input type="checkbox" checked={available} onChange={(event) => setAvailable(event.target.checked)} className="h-4 w-4 accent-[#8b1a2e]" />
+              <input
+                type="checkbox"
+                checked={available}
+                onChange={(event) => setAvailable(event.target.checked)}
+                className="h-4 w-4 accent-[#8b1a2e]"
+              />
               Disponível na loja
             </label>
           </>
         )}
 
-        {error && <p role="alert" className="text-sm font-semibold text-red-800">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm font-semibold text-red-800">
+            {error}
+          </p>
+        )}
         <div className="flex flex-col-reverse justify-end gap-3 border-t border-[#e8e8e2] pt-4 sm:flex-row">
-          <button type="button" onClick={onClose} className="min-h-11 rounded-md border border-[#d6d6ce] px-4 text-sm font-bold text-[#55554e]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 rounded-md border border-[#d6d6ce] px-4 text-sm font-bold text-[#55554e]"
+          >
             Cancelar
           </button>
-          <button type="submit" disabled={saving} className="min-h-11 rounded-md bg-[#8b1a2e] px-5 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-60">
+          <button
+            type="submit"
+            disabled={saving}
+            className="min-h-11 rounded-md bg-[#8b1a2e] px-5 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-60"
+          >
             {saving ? "Salvando..." : "Salvar"}
           </button>
         </div>

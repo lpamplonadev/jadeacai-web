@@ -32,9 +32,9 @@ const currency = new Intl.NumberFormat("pt-BR", {
 });
 
 async function readAPIError(response: Response) {
-  const result = (await response.json().catch(() => null)) as
-    | { error?: string }
-    | null;
+  const result = (await response.json().catch(() => null)) as {
+    error?: string;
+  } | null;
   return result?.error ?? `A API respondeu com erro (${response.status}).`;
 }
 
@@ -111,7 +111,12 @@ export function CatalogModule() {
   }
 
   async function archiveItem(item: CatalogItem) {
-    if (!window.confirm(`Excluir “${item.name}” do catálogo? O registro será arquivado para preservar combos e histórico.`)) return;
+    if (
+      !window.confirm(
+        `Excluir “${item.name}” do catálogo? O registro será arquivado para preservar combos e histórico.`,
+      )
+    )
+      return;
     await mutate(`item-${item.id}`, `/admin/api/catalog/items/${item.id}`, {
       method: "DELETE",
     });
@@ -126,7 +131,12 @@ export function CatalogModule() {
   }
 
   async function archiveCombo(combo: CatalogCombo) {
-    if (!window.confirm(`Excluir “${combo.name}” do catálogo? O registro será arquivado para preservar o histórico.`)) return;
+    if (
+      !window.confirm(
+        `Excluir “${combo.name}” do catálogo? O registro será arquivado para preservar o histórico.`,
+      )
+    )
+      return;
     await mutate(`combo-${combo.id}`, `/admin/api/catalog/combos/${combo.id}`, {
       method: "DELETE",
     });
@@ -151,7 +161,11 @@ export function CatalogModule() {
   ).length;
 
   return (
-    <section id="catalogo" aria-labelledby="catalog-title" className="scroll-mt-8">
+    <section
+      id="catalogo"
+      aria-labelledby="catalog-title"
+      className="scroll-mt-8"
+    >
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="catalog-title" className="text-xl font-black">
@@ -173,11 +187,16 @@ export function CatalogModule() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[#deded7] py-3">
-        <div className="inline-flex rounded-md border border-[#deded7] bg-white p-1" aria-label="Tipo de catálogo">
-          {([
-            ["items", `Itens (${activeItemCount})`],
-            ["combos", `Combos (${activeComboCount})`],
-          ] as const).map(([value, label]) => (
+        <div
+          className="inline-flex rounded-md border border-[#deded7] bg-white p-1"
+          aria-label="Tipo de catálogo"
+        >
+          {(
+            [
+              ["items", `Itens (${activeItemCount})`],
+              ["combos", `Combos (${activeComboCount})`],
+            ] as const
+          ).map(([value, label]) => (
             <button
               key={value}
               type="button"
@@ -195,19 +214,25 @@ export function CatalogModule() {
               <span className="sr-only">Filtrar itens por tipo</span>
               <select
                 value={kindFilter}
-                onChange={(event) => setKindFilter(event.target.value as "all" | CatalogItemKind)}
+                onChange={(event) =>
+                  setKindFilter(event.target.value as "all" | CatalogItemKind)
+                }
                 className="min-h-10 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm"
               >
                 <option value="all">Todos os tipos</option>
                 {Object.entries(catalogKindLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
           )}
           <button
             type="button"
-            onClick={() => (tab === "items" ? openItemEditor() : openComboEditor())}
+            onClick={() =>
+              tab === "items" ? openItemEditor() : openComboEditor()
+            }
             disabled={loading || Boolean(mutating)}
             className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#8b1a2e] px-4 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-50"
           >
@@ -218,7 +243,10 @@ export function CatalogModule() {
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+        <p
+          role="alert"
+          className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+        >
           {error}
         </p>
       )}
@@ -232,36 +260,77 @@ export function CatalogModule() {
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Item</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Tipo</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Preço/adicional</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Disponibilidade</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Ações</th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Item
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Tipo
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Preço/adicional
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Disponibilidade
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e8e8e2]">
                 {visibleItems.map((item) => (
                   <tr key={item.id} className="hover:bg-[#fcfcfa]">
                     <td className="px-4 py-3 font-semibold">{item.name}</td>
-                    <td className="px-4 py-3 text-xs text-[#68685f]">{catalogKindLabels[item.kind]}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">{currency.format(item.priceCents / 100)}</td>
+                    <td className="px-4 py-3 text-xs text-[#68685f]">
+                      {catalogKindLabels[item.kind]}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">
+                      {currency.format(item.priceCents / 100)}
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${item.deletedAt ? "bg-slate-100 text-slate-700" : item.available ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                        {item.deletedAt ? "Arquivado" : item.available ? "Ativo" : "Pausado"}
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${item.deletedAt ? "bg-slate-100 text-slate-700" : item.available ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+                      >
+                        {item.deletedAt
+                          ? "Arquivado"
+                          : item.available
+                            ? "Ativo"
+                            : "Pausado"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {!item.deletedAt && (
                         <div className="flex flex-wrap items-center gap-3">
-                          <button type="button" disabled={Boolean(mutating)} onClick={() => openItemEditor(item)} className="inline-flex items-center gap-1 text-xs font-bold text-[#8b1a2e] hover:underline disabled:opacity-50">
-                            <PencilSimpleIcon aria-hidden="true" size={15} /> Editar
+                          <button
+                            type="button"
+                            disabled={Boolean(mutating)}
+                            onClick={() => openItemEditor(item)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-[#8b1a2e] hover:underline disabled:opacity-50"
+                          >
+                            <PencilSimpleIcon aria-hidden="true" size={15} />{" "}
+                            Editar
                           </button>
-                          <button type="button" disabled={Boolean(mutating)} onClick={() => void toggleItem(item)} className="inline-flex items-center gap-1 text-xs font-bold text-[#55554e] hover:underline disabled:opacity-50">
-                            {item.available ? <PauseIcon aria-hidden="true" size={15} /> : <PlayIcon aria-hidden="true" size={15} />}
+                          <button
+                            type="button"
+                            disabled={Boolean(mutating)}
+                            onClick={() => void toggleItem(item)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-[#55554e] hover:underline disabled:opacity-50"
+                          >
+                            {item.available ? (
+                              <PauseIcon aria-hidden="true" size={15} />
+                            ) : (
+                              <PlayIcon aria-hidden="true" size={15} />
+                            )}
                             {item.available ? "Pausar" : "Reativar"}
                           </button>
-                          <button type="button" disabled={Boolean(mutating)} onClick={() => void archiveItem(item)} className="inline-flex items-center gap-1 text-xs font-bold text-red-800 hover:underline disabled:opacity-50">
-                            <ArchiveBoxIcon aria-hidden="true" size={15} /> Excluir
+                          <button
+                            type="button"
+                            disabled={Boolean(mutating)}
+                            onClick={() => void archiveItem(item)}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-800 hover:underline disabled:opacity-50"
+                          >
+                            <ArchiveBoxIcon aria-hidden="true" size={15} />{" "}
+                            Excluir
                           </button>
                         </div>
                       )}
@@ -281,12 +350,24 @@ export function CatalogModule() {
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
               <tr>
-                <th scope="col" className="px-4 py-3 font-extrabold">Combo</th>
-                <th scope="col" className="px-4 py-3 font-extrabold">Tamanho</th>
-                <th scope="col" className="px-4 py-3 font-extrabold">Preço</th>
-                <th scope="col" className="px-4 py-3 font-extrabold">Itens vinculados</th>
-                <th scope="col" className="px-4 py-3 font-extrabold">Disponibilidade</th>
-                <th scope="col" className="px-4 py-3 font-extrabold">Ações</th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Combo
+                </th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Tamanho
+                </th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Preço
+                </th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Itens vinculados
+                </th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Disponibilidade
+                </th>
+                <th scope="col" className="px-4 py-3 font-extrabold">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e8e8e2]">
@@ -294,30 +375,65 @@ export function CatalogModule() {
                 <tr key={combo.id} className="align-top hover:bg-[#fcfcfa]">
                   <td className="px-4 py-3">
                     <p className="font-semibold">{combo.name}</p>
-                    {combo.tag && <p className="mt-1 text-xs text-[#77776e]">{combo.tag}</p>}
+                    {combo.tag && (
+                      <p className="mt-1 text-xs text-[#77776e]">{combo.tag}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs">{combo.sizeName}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">{currency.format(combo.priceCents / 100)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">
+                    {currency.format(combo.priceCents / 100)}
+                  </td>
                   <td className="max-w-sm px-4 py-3 text-xs text-[#55554e]">
-                    {combo.items.length ? combo.items.map((item) => `${item.quantity}× ${item.name}`).join(", ") : "Sem itens vinculados"}
+                    {combo.items.length
+                      ? combo.items
+                          .map((item) => `${item.quantity}× ${item.name}`)
+                          .join(", ")
+                      : "Sem itens vinculados"}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${combo.deletedAt ? "bg-slate-100 text-slate-700" : combo.available ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                      {combo.deletedAt ? "Arquivado" : combo.available ? "Ativo" : "Pausado"}
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${combo.deletedAt ? "bg-slate-100 text-slate-700" : combo.available ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+                    >
+                      {combo.deletedAt
+                        ? "Arquivado"
+                        : combo.available
+                          ? "Ativo"
+                          : "Pausado"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {!combo.deletedAt && (
                       <div className="flex flex-wrap items-center gap-3">
-                        <button type="button" disabled={Boolean(mutating)} onClick={() => openComboEditor(combo)} className="inline-flex items-center gap-1 text-xs font-bold text-[#8b1a2e] hover:underline disabled:opacity-50">
-                          <PencilSimpleIcon aria-hidden="true" size={15} /> Editar
+                        <button
+                          type="button"
+                          disabled={Boolean(mutating)}
+                          onClick={() => openComboEditor(combo)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#8b1a2e] hover:underline disabled:opacity-50"
+                        >
+                          <PencilSimpleIcon aria-hidden="true" size={15} />{" "}
+                          Editar
                         </button>
-                        <button type="button" disabled={Boolean(mutating)} onClick={() => void toggleCombo(combo)} className="inline-flex items-center gap-1 text-xs font-bold text-[#55554e] hover:underline disabled:opacity-50">
-                          {combo.available ? <PauseIcon aria-hidden="true" size={15} /> : <PlayIcon aria-hidden="true" size={15} />}
+                        <button
+                          type="button"
+                          disabled={Boolean(mutating)}
+                          onClick={() => void toggleCombo(combo)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#55554e] hover:underline disabled:opacity-50"
+                        >
+                          {combo.available ? (
+                            <PauseIcon aria-hidden="true" size={15} />
+                          ) : (
+                            <PlayIcon aria-hidden="true" size={15} />
+                          )}
                           {combo.available ? "Pausar" : "Reativar"}
                         </button>
-                        <button type="button" disabled={Boolean(mutating)} onClick={() => void archiveCombo(combo)} className="inline-flex items-center gap-1 text-xs font-bold text-red-800 hover:underline disabled:opacity-50">
-                          <ArchiveBoxIcon aria-hidden="true" size={15} /> Excluir
+                        <button
+                          type="button"
+                          disabled={Boolean(mutating)}
+                          onClick={() => void archiveCombo(combo)}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-red-800 hover:underline disabled:opacity-50"
+                        >
+                          <ArchiveBoxIcon aria-hidden="true" size={15} />{" "}
+                          Excluir
                         </button>
                       </div>
                     )}
@@ -335,7 +451,11 @@ export function CatalogModule() {
 
       {editor && (
         <CatalogEditorDialog
-          key={editor.type === "item" ? `item-${editor.item?.id ?? "new"}` : `combo-${editor.combo?.id ?? "new"}`}
+          key={
+            editor.type === "item"
+              ? `item-${editor.item?.id ?? "new"}`
+              : `combo-${editor.combo?.id ?? "new"}`
+          }
           editor={editor}
           items={catalog.items}
           onClose={() => setEditor(null)}
