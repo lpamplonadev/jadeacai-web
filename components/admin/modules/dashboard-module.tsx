@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   formatOrderDate,
   formatOrderNumber,
@@ -49,13 +49,17 @@ export function DashboardModule() {
   const [date, setDate] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
+    let refreshTimer: number | undefined;
 
     async function loadDashboard() {
-      setLoading(true);
+      if (hasLoadedRef.current) setRefreshing(true);
+      else setLoading(true);
       setError("");
       const query = date ? `?date=${encodeURIComponent(date)}` : "";
 
@@ -64,20 +68,33 @@ export function DashboardModule() {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) throw new Error("Não foi possível carregar o dashboard.");
+        if (!response.ok)
+          throw new Error("Não foi possível carregar o dashboard.");
         setDashboard((await response.json()) as DashboardResponse);
       } catch {
         if (!controller.signal.aborted) {
-          setDashboard(null);
-          setError("Não foi possível carregar os indicadores. Verifique a API e tente novamente.");
+          setError(
+            "Não foi possível carregar os indicadores. Verifique a API e tente novamente.",
+          );
         }
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          hasLoadedRef.current = true;
+          setLoading(false);
+          setRefreshing(false);
+          refreshTimer = window.setTimeout(
+            () => setRefreshKey((value) => value + 1),
+            10_000,
+          );
+        }
       }
     }
 
     void loadDashboard();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
+    };
   }, [date, refreshKey]);
 
   const counts = new Map(
@@ -90,11 +107,15 @@ export function DashboardModule() {
       color: statusChartColors[status.value],
     }))
     .filter((segment) => segment.count > 0);
-  const totalStatuses = chartSegments.reduce((total, segment) => total + segment.count, 0);
+  const totalStatuses = chartSegments.reduce(
+    (total, segment) => total + segment.count,
+    0,
+  );
   let chartOffset = 0;
   const chartGradient = chartSegments
     .map((segment) => {
-      const start = totalStatuses === 0 ? 0 : (chartOffset / totalStatuses) * 100;
+      const start =
+        totalStatuses === 0 ? 0 : (chartOffset / totalStatuses) * 100;
       chartOffset += segment.count;
       const end = (chartOffset / totalStatuses) * 100;
       return `${segment.color} ${start}% ${end}%`;
@@ -109,7 +130,11 @@ export function DashboardModule() {
   ];
 
   return (
-    <section id="dashboard" aria-labelledby="dashboard-title" className="scroll-mt-8">
+    <section
+      id="dashboard"
+      aria-labelledby="dashboard-title"
+      className="scroll-mt-8"
+    >
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="dashboard-title" className="text-base font-extrabold">
@@ -118,6 +143,11 @@ export function DashboardModule() {
           <p className="mt-1 text-xs text-[#77776e]">
             Indicadores e distribuição dos pedidos por etapa.
           </p>
+          {refreshing && (
+            <p role="status" className="mt-1 text-xs text-[#77776e]">
+              Atualizando...
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="dashboard-date">
@@ -127,7 +157,10 @@ export function DashboardModule() {
             id="dashboard-date"
             type="date"
             value={date}
-            onChange={(event) => setDate(event.target.value)}
+            onChange={(event) => {
+              setLoading(true);
+              setDate(event.target.value);
+            }}
             className="min-h-10 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm outline-none focus:border-[#8b1a2e]"
           />
           {date && (
@@ -142,7 +175,7 @@ export function DashboardModule() {
           <button
             type="button"
             onClick={() => setRefreshKey((value) => value + 1)}
-            disabled={loading}
+            disabled={loading || refreshing}
             aria-label="Atualizar dashboard"
             className="flex h-10 w-10 items-center justify-center rounded-md border border-[#d6d6ce] bg-white text-[#48483f] hover:border-[#8b1a2e] hover:text-[#8b1a2e] disabled:opacity-50"
           >
@@ -152,20 +185,30 @@ export function DashboardModule() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+        <p
+          role="alert"
+          className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+        >
           {error}
         </p>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric, index) => (
-          <article key={metric.label} className="border border-[#e2e2dc] bg-white p-4">
+          <article
+            key={metric.label}
+            className="border border-[#e2e2dc] bg-white p-4"
+          >
             <p className="text-xs font-bold text-[#73736a]">{metric.label}</p>
-            <p className={`mt-3 text-3xl font-black ${index === 1 ? "text-[#a34b29]" : "text-[#292923]"}`}>
-              {loading ? "—" : (metric.value ?? 0)}
+            <p
+              className={`mt-3 text-3xl font-black ${index === 1 ? "text-[#a34b29]" : "text-[#292923]"}`}
+            >
+              {loading || !dashboard ? "—" : (metric.value ?? 0)}
             </p>
             <p className="mt-2 text-[11px] leading-4 text-[#898980]">
-              {dashboard ? formatOrderDate(dashboard.date) : "Dados do banco de pedidos"}
+              {dashboard
+                ? formatOrderDate(dashboard.date)
+                : "Dados do banco de pedidos"}
             </p>
           </article>
         ))}
@@ -175,10 +218,15 @@ export function DashboardModule() {
         <section className="border border-[#e2e2dc] bg-white">
           <div className="border-b border-[#e8e8e2] px-4 py-4 sm:px-5">
             <h3 className="font-extrabold">Pedidos recentes</h3>
-            <p className="mt-1 text-xs text-[#77776e]">Últimos pedidos do dia selecionado</p>
+            <p className="mt-1 text-xs text-[#77776e]">
+              Últimos pedidos do dia selecionado
+            </p>
           </div>
           {loading ? (
-            <p role="status" className="px-5 py-10 text-center text-sm text-[#77776e]">
+            <p
+              role="status"
+              className="px-5 py-10 text-center text-sm text-[#77776e]"
+            >
               Carregando pedidos...
             </p>
           ) : dashboard?.recentOrders.length ? (
@@ -186,10 +234,18 @@ export function DashboardModule() {
               <table className="w-full min-w-[520px] border-collapse text-left text-sm">
                 <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
                   <tr>
-                    <th scope="col" className="px-4 py-3 font-extrabold">Pedido</th>
-                    <th scope="col" className="px-4 py-3 font-extrabold">Cliente</th>
-                    <th scope="col" className="px-4 py-3 font-extrabold">Etapa</th>
-                    <th scope="col" className="px-4 py-3 font-extrabold">Total</th>
+                    <th scope="col" className="px-4 py-3 font-extrabold">
+                      Pedido
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-extrabold">
+                      Cliente
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-extrabold">
+                      Etapa
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-extrabold">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e8e8e2]">
@@ -198,8 +254,12 @@ export function DashboardModule() {
                       <td className="px-4 py-3 font-mono text-xs font-bold text-[#8b1a2e]">
                         {formatOrderNumber(order.orderNumber)}
                       </td>
-                      <td className="px-4 py-3 font-semibold">{order.customerName}</td>
-                      <td className="px-4 py-3 text-xs">{formatStatus(order.status)}</td>
+                      <td className="px-4 py-3 font-semibold">
+                        {order.customerName}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {formatStatus(order.status)}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">
                         {currency.format(order.estimatedTotalCents / 100)}
                       </td>
@@ -210,7 +270,9 @@ export function DashboardModule() {
             </div>
           ) : (
             <p className="px-5 py-10 text-center text-sm text-[#77776e]">
-              {error ? "Os pedidos recentes estão indisponíveis." : "Nenhum pedido neste dia."}
+              {error
+                ? "Os pedidos recentes estão indisponíveis."
+                : "Nenhum pedido neste dia."}
             </p>
           )}
         </section>
@@ -218,10 +280,15 @@ export function DashboardModule() {
         <section className="border border-[#e2e2dc] bg-white">
           <div className="border-b border-[#e8e8e2] px-4 py-4">
             <h3 className="font-extrabold">Distribuição por etapa</h3>
-            <p className="mt-1 text-xs text-[#77776e]">Pedidos do dia selecionado</p>
+            <p className="mt-1 text-xs text-[#77776e]">
+              Pedidos do dia selecionado
+            </p>
           </div>
           {loading ? (
-            <p role="status" className="px-4 py-10 text-center text-sm text-[#77776e]">
+            <p
+              role="status"
+              className="px-4 py-10 text-center text-sm text-[#77776e]"
+            >
               Calculando distribuição...
             </p>
           ) : (
@@ -238,24 +305,35 @@ export function DashboardModule() {
                 }}
               >
                 <div className="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-white text-center">
-                  <span className="text-2xl font-black text-[#292923]">{totalStatuses}</span>
-                  <span className="text-[10px] font-bold text-[#77776e]">PEDIDOS</span>
+                  <span className="text-2xl font-black text-[#292923]">
+                    {totalStatuses}
+                  </span>
+                  <span className="text-[10px] font-bold text-[#77776e]">
+                    PEDIDOS
+                  </span>
                 </div>
               </div>
               <ul className="w-full space-y-2">
                 {orderStatuses.map((status) => {
                   const count = counts.get(status.value) ?? 0;
                   return (
-                    <li key={status.value} className="flex items-center justify-between gap-3 text-xs">
+                    <li
+                      key={status.value}
+                      className="flex items-center justify-between gap-3 text-xs"
+                    >
                       <span className="flex min-w-0 items-center gap-2 font-semibold text-[#55554e]">
                         <span
                           aria-hidden="true"
                           className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: statusChartColors[status.value] }}
+                          style={{
+                            backgroundColor: statusChartColors[status.value],
+                          }}
                         />
                         <span className="truncate">{status.label}</span>
                       </span>
-                      <span className="font-bold tabular-nums text-[#292923]">{count}</span>
+                      <span className="font-bold tabular-nums text-[#292923]">
+                        {count}
+                      </span>
                     </li>
                   );
                 })}
