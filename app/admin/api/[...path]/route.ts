@@ -83,3 +83,7 @@ export async function POST(request: Request, context: AdminProxyContext) {
 export async function PATCH(request: Request, context: AdminProxyContext) {
   return proxyAdminRequest(request, context);
 }
+
+export async function DELETE(request: Request, context: AdminProxyContext) {
+  return proxyAdminRequest(request, context);
+}
