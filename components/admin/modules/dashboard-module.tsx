@@ -1,6 +1,11 @@
 "use client";
 
-import { ArrowClockwiseIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import {
   formatOrderDate,
@@ -26,6 +31,11 @@ type DashboardResponse = {
   }[];
 };
 
+type NewOrderAlert = {
+  order: DashboardResponse["recentOrders"][number];
+  count: number;
+};
+
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -40,6 +50,25 @@ const statusChartColors: Record<string, string> = {
   completed: "#64748b",
 };
 
+function playNewOrderSound(audioContext: AudioContext) {
+  if (audioContext.state !== "running") return;
+
+  [880, 1175].forEach((frequency, index) => {
+    const startTime = audioContext.currentTime + index * 0.18;
+    const oscillator = audioContext.createOscillator();
+    const volume = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    volume.gain.setValueAtTime(0.0001, startTime);
+    volume.gain.exponentialRampToValueAtTime(0.12, startTime + 0.025);
+    volume.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.16);
+    oscillator.connect(volume);
+    volume.connect(audioContext.destination);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 0.17);
+  });
+}
+
 function formatStatus(status: string) {
   return orderStatuses.find((item) => item.value === status)?.label ?? status;
 }
@@ -51,7 +80,16 @@ export function DashboardModule() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundError, setSoundError] = useState("");
+  const [newOrderAlert, setNewOrderAlert] = useState<NewOrderAlert | null>(null);
   const hasLoadedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const orderSnapshotRef = useRef<{
+    date: string;
+    count: number;
+    latestOrderId: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,6 +134,100 @@ export function DashboardModule() {
       if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
     };
   }, [date, refreshKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let stopped = false;
+    let pollTimer: number | undefined;
+
+    async function pollForNewOrders() {
+      try {
+        const response = await fetch("/admin/api/dashboard", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("dashboard poll failed");
+
+        const latestDashboard = (await response.json()) as DashboardResponse;
+        const latestOrder = latestDashboard.recentOrders[0] ?? null;
+        const snapshot = orderSnapshotRef.current;
+
+        if (!snapshot || snapshot.date !== latestDashboard.date) {
+          orderSnapshotRef.current = {
+            date: latestDashboard.date,
+            count: latestDashboard.ordersToday,
+            latestOrderId: latestOrder?.id ?? null,
+          };
+        } else {
+          const newOrdersCount = Math.max(
+            0,
+            latestDashboard.ordersToday - snapshot.count,
+          );
+          const hasNewLatestOrder =
+            latestOrder !== null && latestOrder.id !== snapshot.latestOrderId;
+
+          if ((newOrdersCount > 0 || hasNewLatestOrder) && latestOrder) {
+            setNewOrderAlert({
+              order: latestOrder,
+              count: Math.max(newOrdersCount, 1),
+            });
+            setRefreshKey((value) => value + 1);
+            if (soundEnabled && audioContextRef.current) {
+              playNewOrderSound(audioContextRef.current);
+            }
+          }
+
+          orderSnapshotRef.current = {
+            date: latestDashboard.date,
+            count: latestDashboard.ordersToday,
+            latestOrderId: latestOrder?.id ?? null,
+          };
+        }
+      } catch {
+        // The regular dashboard request already reports connection errors.
+      } finally {
+        if (!stopped) {
+          pollTimer = window.setTimeout(
+            () => void pollForNewOrders(),
+            10_000,
+          );
+        }
+      }
+    }
+
+    void pollForNewOrders();
+    return () => {
+      stopped = true;
+      controller.abort();
+      if (pollTimer !== undefined) window.clearTimeout(pollTimer);
+    };
+  }, [soundEnabled]);
+
+  useEffect(
+    () => () => {
+      void audioContextRef.current?.close();
+    },
+    [],
+  );
+
+  async function toggleSoundAlerts() {
+    setSoundError("");
+    if (soundEnabled) {
+      setSoundEnabled(false);
+      await audioContextRef.current?.suspend();
+      return;
+    }
+
+    try {
+      const audioContext = audioContextRef.current ?? new AudioContext();
+      await audioContext.resume();
+      audioContextRef.current = audioContext;
+      setSoundEnabled(true);
+      playNewOrderSound(audioContext);
+    } catch {
+      setSoundError("Não foi possível ativar o áudio neste navegador.");
+    }
+  }
 
   const counts = new Map(
     (dashboard?.statusCounts ?? []).map((item) => [item.status, item.count]),
@@ -181,8 +313,66 @@ export function DashboardModule() {
           >
             <ArrowClockwiseIcon aria-hidden="true" size={17} />
           </button>
+          <button
+            type="button"
+            onClick={() => void toggleSoundAlerts()}
+            aria-pressed={soundEnabled}
+            aria-label={soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
+            title={soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
+            className={`flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-bold transition-colors ${soundEnabled ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-[#d6d6ce] bg-white text-[#48483f] hover:border-[#8b1a2e] hover:text-[#8b1a2e]"}`}
+          >
+            {soundEnabled ? (
+              <SpeakerHighIcon aria-hidden="true" size={18} />
+            ) : (
+              <SpeakerSlashIcon aria-hidden="true" size={18} />
+            )}
+            <span>{soundEnabled ? "Som ligado" : "Ativar som"}</span>
+          </button>
         </div>
       </div>
+
+      {soundError && (
+        <p role="alert" className="mb-3 text-sm font-semibold text-red-800">
+          {soundError}
+        </p>
+      )}
+
+      {newOrderAlert && (
+        <div
+          role="alert"
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+        >
+          <p>
+            <strong>
+              {newOrderAlert.count === 1
+                ? "Novo pedido"
+                : `${newOrderAlert.count} novos pedidos`}
+            </strong>
+            {newOrderAlert.count === 1 && (
+              <>
+                {" "}
+                {formatOrderNumber(newOrderAlert.order.orderNumber)} · {newOrderAlert.order.customerName}
+              </>
+            )}
+          </p>
+          <div className="flex items-center gap-3">
+            <a
+              href="#pedidos"
+              className="font-extrabold underline underline-offset-2"
+            >
+              Ver pedidos
+            </a>
+            <button
+              type="button"
+              onClick={() => setNewOrderAlert(null)}
+              aria-label="Dispensar alerta de novo pedido"
+              className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-emerald-100"
+            >
+              <XIcon aria-hidden="true" size={17} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p
