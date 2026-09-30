@@ -53,20 +53,35 @@ const statusChartColors: Record<string, string> = {
 function playNewOrderSound(audioContext: AudioContext) {
   if (audioContext.state !== "running") return;
 
-  [880, 1175].forEach((frequency, index) => {
-    const startTime = audioContext.currentTime + index * 0.18;
-    const oscillator = audioContext.createOscillator();
-    const volume = audioContext.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-    volume.gain.setValueAtTime(0.0001, startTime);
-    volume.gain.exponentialRampToValueAtTime(0.12, startTime + 0.025);
-    volume.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.16);
-    oscillator.connect(volume);
-    volume.connect(audioContext.destination);
-    oscillator.start(startTime);
-    oscillator.stop(startTime + 0.17);
-  });
+  const ringBell = (startTime: number, strength: number) => {
+    const masterVolume = audioContext.createGain();
+    masterVolume.gain.setValueAtTime(strength, startTime);
+    masterVolume.connect(audioContext.destination);
+
+    const partials = [
+      { frequency: 1320, volume: 0.46 },
+      { frequency: 1980, volume: 0.24 },
+      { frequency: 2860, volume: 0.14 },
+      { frequency: 4120, volume: 0.08 },
+    ];
+
+    for (const partial of partials) {
+      const oscillator = audioContext.createOscillator();
+      const resonance = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(partial.frequency, startTime);
+      resonance.gain.setValueAtTime(partial.volume, startTime);
+      resonance.gain.exponentialRampToValueAtTime(0.001, startTime + 1.15);
+      oscillator.connect(resonance);
+      resonance.connect(masterVolume);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 1.2);
+    }
+  };
+
+  const now = audioContext.currentTime;
+  ringBell(now, 0.68);
+  ringBell(now + 0.17, 0.42);
 }
 
 function formatStatus(status: string) {
