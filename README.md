@@ -30,6 +30,8 @@ Gere uma chave de sessão com `node -e "console.log(require('node:crypto').rando
 
 O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. Isso protege a interface `/admin`; antes de conectar dados administrativos, a API também precisa autenticar e autorizar as rotas de leitura e alteração. CORS sozinho não substitui autenticação.
 
+O backend fica no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api). O frontend já usa `GET /health`, `GET /api/v1/menu/combos` e `POST /api/v1/orders`; o backend ainda não implementa rotas administrativas. O estado verificado e as rotas Admin que faltam estão documentados em [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md#9-contrato-atual-da-api-e-lacunas-admin).
+
 ## Verificações
 
 ```bash

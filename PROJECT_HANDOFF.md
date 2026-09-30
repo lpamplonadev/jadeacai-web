@@ -2,14 +2,14 @@
 
 ## 1. Purpose and current state
 
-This repository contains the customer-facing Jade Açaí landing page and a client-side order configurator. The current purchase path is:
+This repository contains the customer-facing Jade Açaí landing page, a client-side order configurator, and the initial protected `/admin` interface. The current purchase path is:
 
 1. Customer sees one of four hero promotions.
 2. Customer can browse a combo in the catalog and choose “Personalizar” to load that combo into the builder.
 3. The builder has two steps: açaí configuration, then customer/delivery/payment details.
-4. On valid submission, the browser opens a prefilled WhatsApp message to the configured business number.
+4. On valid submission, the browser opens a prefilled WhatsApp message and sends the order payload to the public orders API.
 
-There is currently **no API, database, authentication, persistent cart, order tracking, admin panel, coupon system, delivery-area lookup, payment processing, or server-side order record**. Form and builder state live only in React memory and reset on reload. The WhatsApp message is the current handoff to the business.
+The frontend has public API integration for loading combos and creating orders. This repository does not include the backend, so API availability and order persistence depend on that service. Admin login and its signed cookie are implemented in Next.js, but operational admin data and admin APIs are not yet connected. Form and builder state live only in React memory and reset on reload.
 
 ## 2. Setup and checks
 
@@ -29,7 +29,7 @@ Next.js is version 16.3.6, React is 19.2.8, and Tailwind is v4. Check `node_modu
 
 ## 3. Routes and composition
 
-There is one route: `/`.
+The customer-facing route is `/`. `/admin` renders the protected login or, after login, the dashboard, orders, catalog, and coupons modules.
 
 `app/page.tsx` is a Client Component because it controls the hero slide and selected combo. It composes:
 
@@ -137,24 +137,69 @@ The builder has two steps, both controlled in `acai-builder.tsx`:
 
 `DeliveryCheckoutForm` requires name, phone, postal code, street, number, neighborhood, and payment method. Complement, reference, and notes are optional. Payment methods are Pix, cash, and card at delivery. For cash, an optional “Preciso de troco” checkbox reveals a required amount input whose HTML `min` is the current order total.
 
-The submit handler builds a Portuguese multiline message containing the builder choices, item charges, delivery fee, total, address, selected payment method, and (when applicable) change request, then opens `https://wa.me/<number>?text=<encoded message>`.
+The submit handler builds a Portuguese multiline message containing the builder choices, item charges, delivery fee, total, address, selected payment method, and (when applicable) change request, then opens `https://wa.me/<number>?text=<encoded message>`. It also sends `CreateOrderRequest` to `POST /api/v1/orders`; the frontend includes an estimated total, but the backend must recalculate all prices and validate all selected IDs before persisting.
 
 The WhatsApp business number is `5521990174473` in `acai-builder-data.ts` and is also currently hardcoded in the checkout submit handler. If it changes, update both locations or centralize it further. `window.open` is client-only; the handler must remain in a Client Component.
 
 No delivery fee is calculated from address and no address validation/CEP lookup exists. A customer can enter any neighborhood; fee is always the fixed R$ 3,00.
 
-## 9. API/Admin roadmap notes
+## 9. Contrato atual da API e lacunas Admin
 
-The current boundary to replace later is the final action in `submitDeliveryOrder()` in `acai-builder.tsx`. When an API is introduced:
+Backend verificado no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api), branch `main`, commit `d7a8a42` (29/09/2026). O estado abaixo distingue as rotas implementadas das sugestões para completar o painel.
+
+### Rotas implementadas
+
+These routes are already called by `lib/jade-api.ts`:
+
+| Method | Route | Current purpose |
+| --- | --- | --- |
+| `GET` | `/health` | API health check |
+| `GET` | `/api/v1/menu/combos` | Load four combos from a static in-memory list (`{ combos: [...] }`) |
+| `POST` | `/api/v1/orders` | Register a customer order using `CreateOrderRequest` |
+
+`POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `{ status: "received", persisted: true, orderId: string }`. The frontend currently reads `status` and `persisted`; `orderId` is returned by the API but not yet used by the frontend. The stored `estimatedTotalCents` comes from the client and is not recalculated or validated against catalog prices by the API. Do not use it as a trusted charge amount until server-side pricing and selection validation are implemented.
+
+### Rotas administrativas que ainda precisam ser criadas
+
+The backend currently has **no admin routes, admin authentication, or admin authorization**. To support the existing dashboard, orders, catalog, and coupons modules, the following is a suggested minimum contract:
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/admin/dashboard?date=YYYY-MM-DD` | Daily metrics, order-status counts, and recent orders for the dashboard |
+| `GET` | `/api/v1/admin/orders?status=&search=&page=&limit=` | Filtered and paginated order list |
+| `GET` | `/api/v1/admin/orders/{orderId}` | Full order details, including customer, delivery, payment, and selected items |
+| `PATCH` | `/api/v1/admin/orders/{orderId}` | Update an order's status; request `{ "status": "preparing" }` |
+| `GET` | `/api/v1/admin/catalog` | List configurable items and combos |
+| `POST` | `/api/v1/admin/catalog/items` | Create a flavor, size, topping, sauce, condiment position, fruit, or extra |
+| `PATCH` | `/api/v1/admin/catalog/items/{itemId}` | Update item name, price/rules, sort order, or availability |
+| `POST` | `/api/v1/admin/catalog/combos` | Create a combo |
+| `PATCH` | `/api/v1/admin/catalog/combos/{comboId}` | Update combo price, included quantities, or availability |
+| `GET` | `/api/v1/admin/coupons` | List coupons |
+| `POST` | `/api/v1/admin/coupons` | Create a coupon |
+| `PATCH` | `/api/v1/admin/coupons/{couponId}` | Update or deactivate a coupon |
+
+Use `available: false` to deactivate catalog entries instead of deleting records referenced by orders. The catalog response should include item `id`, `name`, `available`, `sortOrder`, and applicable `priceCents`/rules; combos additionally need `sizeId`, `priceCents`, and included topping, fruit, and extra quantities. Admin lists should return stable IDs and ISO-8601 timestamps. Paginated order lists should use a shape such as `{ "orders": [], "page": 1, "limit": 20, "total": 0 }`.
+
+The dashboard response should provide `ordersToday`, `waitingPreparation`, `inProduction`, `completedToday`, counts by status, and a short `recentOrders` list. The existing database defaults new orders to `received`; the remaining statuses are not yet defined or managed by the API. If adopting this contract, use these values consistently in dashboard counts, order filters, and status updates: `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, `completed`.
+
+If customers will enter coupon codes at checkout, also add a public `POST /api/v1/coupons/validate` endpoint and validate/reapply the discount during `POST /api/v1/orders`. The current checkout has no coupon field, so this endpoint is not required to connect the current Admin screen.
+
+### Autenticação e regras do servidor
+
+Every `/api/v1/admin/*` route must require authorization on the backend; protecting the `/admin` page and enabling CORS are not sufficient. The current `jade_admin_session` cookie is created and verified by the Next.js app, is scoped to `/admin`, and is not a credential the external API recognizes. Do not expose `ADMIN_SESSION_SECRET` or a backend service credential in browser code. Either add a Next.js server-side proxy that verifies this session before calling the backend, or implement a backend-owned admin login/session and authorize each admin request there.
+
+The API's current CORS configuration allows only `GET`, `POST`, and `OPTIONS`. If the browser calls admin `PATCH` routes directly, update the backend CORS allowlist to include `PATCH` (and any chosen authentication headers); CORS is not an authorization mechanism. A Next.js server-side proxy avoids exposing backend credentials to the browser.
+
+The current order submission boundary is `submitDeliveryOrder()` in `acai-builder.tsx`. When extending checkout and catalog APIs:
 
 1. Define a server-side order DTO/schema for items, combo id, customizations, address, payment selection, change amount, delivery fee, and final total.
 2. Recalculate all prices and combo allowances on the server; never trust client-submitted totals/prices.
-3. Create a pending order through an authenticated/validated API or server action and return an order identifier/status.
+3. Create a pending order through a validated API and return an order identifier/status.
 4. Decide whether WhatsApp remains a notification channel or whether the Admin dashboard is the primary order inbox.
-5. Move catalog, combo, price, coupon, delivery-fee, and availability data into the admin-managed backend.
+5. Ensure changes made in the admin-managed catalog are also served to the customer-facing menu/configurator; the current `GET /api/v1/menu/combos` serves only a static combo list and does not expose the builder's flavors, sizes, toppings, sauces, condiment positions, fruits, or extras.
 6. Add explicit consent/retention rules for contact and address data; account creation should remain optional unless the product decision changes.
 
-Potential Admin domains requested/planned: monitor orders, manage catalog/products, prices, combos, coupons/discounts. None are implemented yet.
+The suggested `dashboard` and `orders` endpoints support monitoring and status management. Catalog and coupon management require the CRUD routes above. These are proposed backend contracts; no admin API implementation is included in either repository as of the backend commit referenced above.
 
 ## 10. Important open decisions before backend/launch
 
