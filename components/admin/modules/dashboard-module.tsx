@@ -41,6 +41,8 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const dashboardRefreshIntervalMs = 60_000;
+
 const statusChartColors: Record<string, string> = {
   received: "#8b1a2e",
   preparing: "#d97706",
@@ -139,7 +141,7 @@ export function DashboardModule() {
           setRefreshing(false);
           refreshTimer = window.setTimeout(
             () => setRefreshKey((value) => value + 1),
-            10_000,
+            dashboardRefreshIntervalMs,
           );
         }
       }
@@ -204,7 +206,10 @@ export function DashboardModule() {
         // The regular dashboard request already reports connection errors.
       } finally {
         if (!stopped) {
-          pollTimer = window.setTimeout(() => void pollForNewOrders(), 60_000);
+          pollTimer = window.setTimeout(
+            () => void pollForNewOrders(),
+            dashboardRefreshIntervalMs,
+          );
         }
       }
     }
