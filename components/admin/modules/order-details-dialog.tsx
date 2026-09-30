@@ -1,7 +1,13 @@
 "use client";
 
 import { XIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   condimentPositions,
   cupSizes,
@@ -15,6 +21,8 @@ import { combos } from "@/components/menu/menu-data";
 
 export type AdminOrder = {
   id: string;
+  orderNumber: number;
+  orderDate: string;
   status: string;
   customerName: string;
   customerPhone: string;
@@ -22,6 +30,19 @@ export type AdminOrder = {
   orderData: unknown;
   createdAt: string;
 };
+
+export function formatOrderNumber(orderNumber: number) {
+  return `#${String(orderNumber).padStart(4, "0")}`;
+}
+
+export function formatOrderDate(orderDate: string) {
+  return new Date(`${orderDate}T12:00:00`).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export const orderStatuses = [
   { value: "received", label: "Recebido" },
@@ -71,7 +92,10 @@ function asOrderPayload(value: unknown): OrderPayload {
     : {};
 }
 
-function choiceName(choices: readonly { id: string; name: string }[], id?: string) {
+function choiceName(
+  choices: readonly { id: string; name: string }[],
+  id?: string,
+) {
   if (!id) return "Não selecionado";
   return choices.find((choice) => choice.id === id)?.name ?? id;
 }
@@ -84,7 +108,13 @@ function choiceNames(
   return ids.map((id) => choiceName(choices, id)).join(", ");
 }
 
-function OrderField({ label, children }: { label: string; children: ReactNode }) {
+function OrderField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div>
       <dt className="text-xs font-bold text-[#77776e]">{label}</dt>
@@ -125,11 +155,14 @@ export function OrderDetailsDialog({
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(`/admin/api/orders/${encodeURIComponent(order.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const response = await fetch(
+        `/admin/api/orders/${encodeURIComponent(order.id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
       if (!response.ok) throw new Error("Não foi possível atualizar a etapa.");
       onStatusUpdated(order.id, status);
     } catch {
@@ -139,11 +172,14 @@ export function OrderDetailsDialog({
     }
   }
 
-  const paymentMethod = {
-    pix: "Pix",
-    cash: "Dinheiro",
-    card: "Cartão na entrega",
-  }[payment?.method ?? ""] ?? payment?.method ?? "Não informado";
+  const paymentMethod =
+    {
+      pix: "Pix",
+      cash: "Dinheiro",
+      card: "Cartão na entrega",
+    }[payment?.method ?? ""] ??
+    payment?.method ??
+    "Não informado";
   const comboName = combos.find((combo) => combo.id === acai?.comboId)?.name;
   const changeFor = payment?.changeForCents;
 
@@ -164,13 +200,13 @@ export function OrderDetailsDialog({
       <div className="flex items-start justify-between gap-5 border-b border-[#deded7] px-5 py-5 sm:px-7">
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase text-[#8b1a2e]">
-            Pedido {order.id.slice(0, 8)}
+            Pedido {formatOrderNumber(order.orderNumber)}
           </p>
           <h2 id="order-details-title" className="mt-1 text-2xl font-black">
             {order.customerName}
           </h2>
           <p className="mt-1 text-sm text-[#77776e]">
-            {new Date(order.createdAt).toLocaleString("pt-BR")}
+            {formatOrderDate(order.orderDate)} · {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
           </p>
         </div>
         <button
@@ -194,7 +230,10 @@ export function OrderDetailsDialog({
                 {payload.customer?.name ?? order.customerName}
               </OrderField>
               <OrderField label="WhatsApp">
-                <a className="underline decoration-[#c8c8bf] underline-offset-2" href={`tel:${payload.customer?.phone ?? order.customerPhone}`}>
+                <a
+                  className="underline decoration-[#c8c8bf] underline-offset-2"
+                  href={`tel:${payload.customer?.phone ?? order.customerPhone}`}
+                >
                   {payload.customer?.phone ?? order.customerPhone}
                 </a>
               </OrderField>
@@ -241,11 +280,15 @@ export function OrderDetailsDialog({
             </h3>
             <dl className="grid gap-3 sm:grid-cols-2">
               <OrderField label="Endereço">
-                {[delivery?.street, delivery?.number].filter(Boolean).join(", ")}
+                {[delivery?.street, delivery?.number]
+                  .filter(Boolean)
+                  .join(", ")}
               </OrderField>
               <OrderField label="Bairro">{delivery?.neighborhood}</OrderField>
               <OrderField label="CEP">{delivery?.postalCode}</OrderField>
-              <OrderField label="Complemento">{delivery?.complement}</OrderField>
+              <OrderField label="Complemento">
+                {delivery?.complement}
+              </OrderField>
               <OrderField label="Referência">{delivery?.reference}</OrderField>
             </dl>
           </section>
@@ -268,7 +311,10 @@ export function OrderDetailsDialog({
           </section>
         </div>
 
-        <section aria-labelledby="order-notes-title" className="border-t border-[#e8e8e2] pt-5">
+        <section
+          aria-labelledby="order-notes-title"
+          className="border-t border-[#e8e8e2] pt-5"
+        >
           <h3 id="order-notes-title" className="mb-2 text-sm font-black">
             Observações
           </h3>
@@ -278,7 +324,10 @@ export function OrderDetailsDialog({
         </section>
 
         <form onSubmit={saveStatus} className="border-t border-[#e8e8e2] pt-5">
-          <label htmlFor="order-next-status" className="mb-2 block text-sm font-black">
+          <label
+            htmlFor="order-next-status"
+            className="mb-2 block text-sm font-black"
+          >
             Etapa do pedido
           </label>
           <div className="flex flex-col gap-3 sm:flex-row">

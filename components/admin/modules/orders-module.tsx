@@ -4,6 +4,8 @@ import { ArrowClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   OrderDetailsDialog,
+  formatOrderDate,
+  formatOrderNumber,
   orderStatuses,
   type AdminOrder,
 } from "@/components/admin/modules/order-details-dialog";
@@ -25,6 +27,7 @@ export function OrdersModule() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState("");
+  const [orderDate, setOrderDate] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -45,6 +48,7 @@ export function OrdersModule() {
       });
       if (status) query.set("status", status);
       if (search) query.set("search", search);
+      if (orderDate) query.set("date", orderDate);
 
       try {
         const response = await fetch(`/admin/api/orders?${query}`, {
@@ -72,7 +76,7 @@ export function OrdersModule() {
 
     void loadOrders();
     return () => controller.abort();
-  }, [page, status, search, refreshKey]);
+  }, [page, status, search, orderDate, refreshKey]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,6 +98,13 @@ export function OrdersModule() {
 
   const firstOrder = total === 0 ? 0 : (page - 1) * limit + 1;
   const lastOrder = Math.min(page * limit, total);
+  const ordersByDay = orders.reduce<Record<string, AdminOrder[]>>(
+    (groups, order) => {
+      (groups[order.orderDate] ??= []).push(order);
+      return groups;
+    },
+    {},
+  );
 
   return (
     <section
@@ -158,6 +169,18 @@ export function OrdersModule() {
             </option>
           ))}
         </select>
+        <label className="flex min-h-10 items-center gap-2 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm text-[#68685f]">
+          <span className="sr-only">Filtrar pedidos por dia</span>
+          <input
+            type="date"
+            value={orderDate}
+            onChange={(event) => {
+              setPage(1);
+              setOrderDate(event.target.value);
+            }}
+            className="min-w-0 bg-transparent text-sm text-[#33332d] outline-none"
+          />
+        </label>
         <button
           type="submit"
           className="min-h-10 rounded-md bg-[#8b1a2e] px-4 text-sm font-bold text-white transition-colors hover:bg-[#6b1222]"
@@ -211,43 +234,50 @@ export function OrdersModule() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e8e8e2]">
-                {orders.map((order) => (
-                  <tr key={order.id} className="align-top hover:bg-[#fcfcfa]">
-                    <td className="px-4 py-4 font-mono text-xs text-[#68685f]">
-                      {order.id.slice(0, 8)}
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-bold text-[#33332d]">
-                        {order.customerName}
-                      </p>
-                      <p className="mt-1 text-xs text-[#77776e]">
-                        {order.customerPhone}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-xs text-[#68685f]">
-                      {new Date(order.createdAt).toLocaleString("pt-BR")}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 font-bold text-[#33332d]">
-                      {currency.format(order.estimatedTotalCents / 100)}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="inline-flex rounded-full bg-[#f8eeee] px-2.5 py-1 text-xs font-bold text-[#731a2a]">
-                        {orderStatuses.find((item) => item.value === order.status)?.label ?? order.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedOrder(order)}
-                        className="font-bold text-[#8b1a2e] underline decoration-[#c8c8bf] underline-offset-2 hover:text-[#6b1222]"
-                      >
-                        Ver pedido
-                      </button>
-                    </td>
+              {Object.entries(ordersByDay).map(([day, dayOrders]) => (
+                <tbody key={day} className="divide-y divide-[#e8e8e2]">
+                  <tr className="bg-[#f8eeee]">
+                    <th
+                      scope="rowgroup"
+                      colSpan={6}
+                      className="px-4 py-3 text-left text-xs font-extrabold uppercase text-[#731a2a]"
+                    >
+                      {formatOrderDate(day)} · {dayOrders.length} {dayOrders.length === 1 ? "pedido" : "pedidos"}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
+                  {dayOrders.map((order) => (
+                    <tr key={order.id} className="align-top hover:bg-[#fcfcfa]">
+                      <td className="px-4 py-4 font-mono text-xs font-bold text-[#8b1a2e]">
+                        {formatOrderNumber(order.orderNumber)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="font-bold text-[#33332d]">{order.customerName}</p>
+                        <p className="mt-1 text-xs text-[#77776e]">{order.customerPhone}</p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 text-xs text-[#68685f]">
+                        {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 font-bold text-[#33332d]">
+                        {currency.format(order.estimatedTotalCents / 100)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-flex rounded-full bg-[#f8eeee] px-2.5 py-1 text-xs font-bold text-[#731a2a]">
+                          {orderStatuses.find((item) => item.value === order.status)?.label ?? order.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrder(order)}
+                          className="font-bold text-[#8b1a2e] underline decoration-[#c8c8bf] underline-offset-2 hover:text-[#6b1222]"
+                        >
+                          Ver pedido
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
             </table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-[#68685f]">
