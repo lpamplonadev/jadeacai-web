@@ -2,18 +2,20 @@
 
 ## 1. Purpose and current state
 
-This repository contains the customer-facing Jade Açaí landing page, a client-side order configurator, and the initial protected `/admin` interface. The current purchase path is:
+This repository contains the customer-facing Jade Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. The current purchase path is:
 
-1. Customer sees one of four hero promotions.
-2. Customer can browse a combo in the catalog and choose “Personalizar” to load that combo into the builder.
-3. The builder has two steps: açaí configuration, then customer/delivery/payment details.
-4. On valid submission, the browser opens a prefilled WhatsApp message and sends the order payload to the public orders API.
+1. The storefront loads active catalog items, combos, and pricing rules from the public API.
+2. Featured cards offer açaí livre sizes and combos; the customer can expand the full catalog. A combo or free size opens the configurator.
+3. The customer can add up to 20 configured açaís to one in-memory cart, then enter customer, delivery, and payment details.
+4. Submission opens a prefilled WhatsApp message and sends one multi-item order to the public orders API.
 
-The frontend has public API integration for loading combos and creating orders. This repository does not include the backend, so API availability and order persistence depend on that service. Admin login and its signed cookie are implemented in Next.js, but operational admin data and admin APIs are not yet connected. Form and builder state live only in React memory and reset on reload.
+The frontend also has a protected Admin for dashboard metrics, order search/details/status changes, and catalog item/combo management. Admin requests pass through a Next.js server-side proxy, which verifies the signed session before attaching the private API key. API availability and order persistence depend on the backend. Builder/cart state lives in React memory and resets on reload; orders are stored by the API, while WhatsApp remains the customer notification/confirmation channel.
 
 ## 2. Setup and checks
 
 Requirements: Node.js and npm. The workspace has been used with Node 24.
+
+Configure `NEXT_PUBLIC_API_URL` with the backend base URL, plus `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `ADMIN_API_KEY` in `.env.local`. The same `ADMIN_API_KEY` must be configured privately on the backend. Production frontend variables belong in Vercel; backend secrets and `DATABASE_URL` belong in the API host. Never expose the admin key with a `NEXT_PUBLIC_` prefix.
 
 ```bash
 npm install
@@ -29,9 +31,9 @@ Next.js is version 16.3.6, React is 19.2.8, and Tailwind is v4. Check `node_modu
 
 ## 3. Routes and composition
 
-The customer-facing route is `/`. `/admin` renders the protected login or, after login, the dashboard, orders, catalog, and coupons modules.
+The customer-facing route is `/`. `/admin` renders the protected login or, after login, the dashboard, orders, and catalog modules. The coupons module is not connected to a backend contract and is not an implemented coupon workflow.
 
-`app/page.tsx` is a Client Component because it controls the hero slide and selected combo. It composes:
+`app/page.tsx` is a Client Component because it loads the public catalog and controls the hero, selected combo/size, and API status. It composes:
 
 - `SiteHeader`
 - `ProductHero`
@@ -48,11 +50,11 @@ The hero and catalog are the landing experience. Header/catalog buttons use in-p
 - `app/page.tsx`: landing composition, active hero slide, selected combo state, scroll-to-builder callback.
 - `app/layout.tsx`: root document wrapper, locale, metadata, and fonts.
 - `app/globals.css`: Tailwind imports, design tokens, palette variables, base styles.
-- `components/menu/menu-data.tsx`: `Product` and `MenuCombo` types; hero product examples; combo catalog records; older navigation metadata.
+- `components/menu/menu-data.tsx`: `Product` and `MenuCombo` types and local campaign imagery/examples; active menu records are fetched from the backend.
 - `components/menu/product-hero.tsx`: four promotional slides (two açaí livre, two combos), their copy, badges, imagery, CTAs, and carousel controls.
-- `components/menu/product-catalog.tsx`: combo cards, inclusions, prices, personalization action.
-- `components/menu/acai-builder.tsx`: selection state, combo selection, pricing calculations, step navigation, WhatsApp order message, selected-item limit handling.
-- `components/menu/acai-builder-data.ts`: builder options, item prices, allowances, delivery fee, WhatsApp number, currency formatter, combo-to-cup mapping.
+- `components/menu/product-catalog.tsx`: featured cards for the first two free sizes and combos, plus expandable full catalog lists; selections open the builder.
+- `components/menu/acai-builder.tsx`: API-backed builder options, current configuration, multi-item cart (up to 20), estimates, checkout, WhatsApp message, and API order submission.
+- `components/menu/acai-builder-data.ts`: builder types, fallback values, currency formatter, and combo-to-size mapping; live options and commercial rules are converted from the public catalog in `lib/jade-api.ts`.
 - `components/menu/choice-checklist.tsx`: reusable multi-select checklist.
 - `components/menu/order-summary.tsx`: desktop order summary, total, “continue to delivery” action, and mobile floating total bar with scroll visibility behavior.
 - `components/menu/combo-limit-dialog.tsx`: accessible confirmation dialog when a combo allowance is exceeded.
@@ -63,6 +65,10 @@ The hero and catalog are the landing experience. Header/catalog buttons use in-p
 - `components/ui/`: generated shadcn/Base UI components.
 - `lib/utils.ts`: shared utility functions (including class name helper).
 - `next.config.ts`: allows `images.unsplash.com` for `next/image`.
+- `lib/jade-api.ts`: public catalog/order API client and conversion from API catalog records to builder data.
+- `lib/admin-auth.ts`: credential validation and signed Admin session.
+- `app/admin/api/[...path]/route.ts`: authenticated server-side proxy for Admin API requests.
+- `components/admin/modules/`: dashboard, order management, and catalog CRUD modules.
 
 ## 5. Visual identity
 
@@ -86,40 +92,15 @@ The hero builds four promotions in `product-hero.tsx`:
 - The dots and arrows change the active slide. `app/page.tsx` currently uses `heroSlideCount = 4`; update that value or derive it from shared promotions if the count changes.
 - Product images used by the hero come from `products`; combo cards and combo hero slides use `combos`.
 
-The catalog displays every record in `combos`. Each “Personalizar” button sets the selected combo and scrolls the builder into view. It does not create an order or call a backend.
+The catalog features the first two active free sizes and combos, with an expandable view for all sizes, combos, flavors, toppings, sauces, condiment positions, fruits, and extras. “Montar” selects a free size; “Personalizar” loads a combo and its included items into the builder. These catalog records come from the backend, not from Admin-only frontend state.
 
-## 7. Combo data and current commercial rules
+The builder can add up to 20 configured açaís to one cart and remove individual lines. Each line contains a full açaí configuration and estimated subtotal. Catalog components (flavors, fruits, toppings, sauces, and extras) are choices inside a configured açaí; they are not currently standalone purchasable products. The cart and checkout form are client-memory state and are cleared on reload.
 
-Combo records are in `components/menu/menu-data.tsx`:
+## 7. Catalog source and commercial rules
 
-| Combo         |    Size |    Price | Included toppings | Included fruits | Included extras |
-| ------------- | ------: | -------: | ----------------: | --------------: | --------------: |
-| Combo 300 ml  |  300 ml | R$ 12,90 |                 3 |               0 |               1 |
-| Combo 500 ml  |  500 ml | R$ 16,90 |                 3 |               1 |               1 |
-| Combo 770 ml  |  770 ml | R$ 19,90 |                 5 |               1 |               1 |
-| Combo Marmita | 1 litro | R$ 28,90 |                 6 |               2 |               1 |
+The PostgreSQL catalog is the source of truth for active sizes, flavors, combos, toppings, sauces, condiment positions, fruits, extras, and public pricing rules. The backend migration seeds the initial records. Admin changes are read by the public catalog endpoint and converted by `lib/jade-api.ts`; `acai-builder-data.ts` contains fallback values for when catalog data is incomplete, not the operational source of truth.
 
-These values were set during product discussions and should be confirmed by the business before launch. The Marmita price is currently R$ 28,90 in the data; an earlier requested value was R$ 26,90 and was later changed by workspace edits, so treat this as an **open business decision**, not an assumed approved price.
-
-`getCupSizeForCombo()` maps the combo size to a builder size. The Combo 770 ml maps to the builder's 770 ml cup. Marmita maps to id `1000`, displayed as “Marmita” (1 litro).
-
-### Açaí livre price rules
-
-Current constants in `acai-builder-data.ts`:
-
-- Sizes: 300 ml R$ 11,90; 500 ml R$ 15,90; 770 ml R$ 17,90; Marmita R$ 25,90.
-- Six toppings included; each extra topping R$ 1,00.
-- One fruit included; each additional fruit R$ 2,00.
-- Extras are currently R$ 3,00 each.
-- Sauces are free and one is selectable via native radio buttons; “Sem calda” is explicit.
-- Condiment position is included except the three-layer choice, which adds R$ 3,00.
-- Delivery fee is R$ 3,00 fixed per order, regardless of neighborhood.
-
-Combo card prices are the combo prices before delivery. Once in the builder, the estimated total adds the fixed R$ 3,00 delivery fee. Because the builder starts without a selected size but always includes delivery, its initial total is R$ 3,00. A selected combo's total is combo price + delivery + any paid customization.
-
-Combo-specific allowances replace the free-builder allowances. The customer may choose an included item; trying to exceed the combo allowance for toppings, fruits, or extras opens a dialog. Cancel keeps the combo; confirm clears combo pricing, adds the attempted item, and continues as açaí livre. Condiment placement and sauces do not trigger this combo-upgrade dialog.
-
-**Business rules to confirm:** free fruit currently costs R$ 2,00 beyond the allowance; combo prices and the free-size prices have changed during iteration. Keep the current source of truth in `acai-builder-data.ts` and `menu-data.tsx`, but confirm values with the shop before production.
+Combo records include their size, price, inclusions, and configured items. Selecting a combo preselects its included items. Exceeding its topping, fruit, or extra allowance asks the customer to switch that açaí to free mode. The delivery fee and builder allowances are estimates from the current catalog rules. Confirm all prices and inclusions with the business before launch; do not copy commercial figures from older handoff revisions.
 
 ## 8. Current checkout and WhatsApp contract
 
@@ -127,90 +108,85 @@ The builder has two steps, both controlled in `acai-builder.tsx`:
 
 ### Step 1: açaí configuration
 
-- Requires a flavor and size before continuing.
-- Combo selection preselects/locks the combo size and uses its fixed price.
+- Requires a flavor and size before adding a configured açaí to the cart.
+- A combo preselects its size and included items and uses its catalog price.
 - Includes toppings, one free sauce (or no sauce), condiment placement, fruits, and extras.
-- Total includes product/combination price, additional toppings, additional fruits, paid extras, paid condiment placement, and fixed delivery fee.
+- Estimated total includes all cart lines, their customizations, and one delivery fee per order.
 - The mobile floating total is rendered by `OrderSummary`; it hides when the summary panel enters the viewport and reappears when scrolling upward.
 
 ### Step 2: delivery and payment
 
 `DeliveryCheckoutForm` requires name, phone, postal code, street, number, neighborhood, and payment method. Complement, reference, and notes are optional. Payment methods are Pix, cash, and card at delivery. For cash, an optional “Preciso de troco” checkbox reveals a required amount input whose HTML `min` is the current order total.
 
-The submit handler builds a Portuguese multiline message containing the builder choices, item charges, delivery fee, total, address, selected payment method, and (when applicable) change request, then opens `https://wa.me/<number>?text=<encoded message>`. It also sends `CreateOrderRequest` to `POST /api/v1/orders`; the frontend includes an estimated total, but the backend must recalculate all prices and validate all selected IDs before persisting.
+The customer can add up to 20 configured açaís; each cart line carries its configuration and estimated subtotal. Checkout builds a Portuguese multiline WhatsApp message with all lines, totals, delivery details, payment, and (when applicable) the change request, then opens `https://wa.me/<number>?text=<encoded message>`. The frontend also sends one `CreateOrderRequest` with `items[]` to `POST /api/v1/orders`. The API persists the submitted estimated amounts but does not currently recalculate prices or validate selected catalog IDs; those values are not trusted charge amounts.
 
 The WhatsApp business number is `5521990174473` in `acai-builder-data.ts` and is also currently hardcoded in the checkout submit handler. If it changes, update both locations or centralize it further. `window.open` is client-only; the handler must remain in a Client Component.
 
-No delivery fee is calculated from address and no address validation/CEP lookup exists. A customer can enter any neighborhood; fee is always the fixed R$ 3,00.
+No delivery fee is calculated from address and no address validation/CEP lookup exists. The current delivery fee is a catalog rule applied once per order; a customer can enter any neighborhood.
 
 ## 9. Contrato atual da API e lacunas Admin
 
-Backend verificado no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api), branch `main`, commit `d7a8a42` (29/09/2026). O estado abaixo distingue as rotas implementadas das sugestões para completar o painel.
+Backend mantido no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api). Consulte o estado atual desse repositório e do deploy antes de assumir que commits locais já estão publicados.
 
 ### Rotas implementadas
 
-These routes are already called by `lib/jade-api.ts`:
+The storefront calls these public routes through `lib/jade-api.ts`:
 
 | Method | Route | Current purpose |
 | --- | --- | --- |
 | `GET` | `/health` | API health check |
-| `GET` | `/api/v1/menu/combos` | Load four combos from a static in-memory list (`{ combos: [...] }`) |
-| `POST` | `/api/v1/orders` | Register a customer order using `CreateOrderRequest` |
+| `GET` | `/api/v1/menu/catalog` | Load active items, combos, and pricing rules from PostgreSQL |
+| `GET` | `/api/v1/menu/combos` | Compatibility response containing active combos (`{ combos: [...] }`) |
+| `POST` | `/api/v1/orders` | Persist an order with up to 20 configured açaí lines |
 
-`POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `{ status: "received", persisted: true, orderId: string }`. The frontend currently reads `status` and `persisted`; `orderId` is returned by the API but not yet used by the frontend. The stored `estimatedTotalCents` comes from the client and is not recalculated or validated against catalog prices by the API. Do not use it as a trusted charge amount until server-side pricing and selection validation are implemented.
+`POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `status`, `persisted`, `orderId`, `orderNumber`, and `orderDate`. The request includes `items[]`; the top-level `acai` field mirrors the first line for compatibility. The API does not recalculate submitted subtotals or `estimatedTotalCents`, so do not use these values as trusted charge amounts.
 
-### Rotas administrativas que ainda precisam ser criadas
+### Rotas administrativas implementadas
 
-The backend currently has **no admin routes, admin authentication, or admin authorization**. To support the existing dashboard, orders, catalog, and coupons modules, the following is a suggested minimum contract:
+All `/api/v1/admin/*` routes require `Authorization: Bearer <ADMIN_API_KEY>`:
 
 | Method | Route | Purpose |
 | --- | --- | --- |
+| `GET` | `/api/v1/admin/health` | Verify Admin API key configuration |
 | `GET` | `/api/v1/admin/dashboard?date=YYYY-MM-DD` | Daily metrics, order-status counts, and recent orders for the dashboard |
-| `GET` | `/api/v1/admin/orders?status=&search=&page=&limit=` | Filtered and paginated order list |
-| `GET` | `/api/v1/admin/orders/{orderId}` | Full order details, including customer, delivery, payment, and selected items |
-| `PATCH` | `/api/v1/admin/orders/{orderId}` | Update an order's status; request `{ "status": "preparing" }` |
+| `GET` | `/api/v1/admin/orders?date=&status=&search=&page=&limit=` | Filtered and paginated order list, including order data |
+| `PATCH` | `/api/v1/admin/orders/{orderId}` | Update status to `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, or `completed` |
 | `GET` | `/api/v1/admin/catalog` | List configurable items and combos |
 | `POST` | `/api/v1/admin/catalog/items` | Create a flavor, size, topping, sauce, condiment position, fruit, or extra |
-| `PATCH` | `/api/v1/admin/catalog/items/{itemId}` | Update item name, price/rules, sort order, or availability |
+| `PATCH` | `/api/v1/admin/catalog/items/{itemId}` | Update item name, price, sort order, or availability |
+| `DELETE` | `/api/v1/admin/catalog/items/{itemId}` | Soft-archive a catalog item |
 | `POST` | `/api/v1/admin/catalog/combos` | Create a combo |
-| `PATCH` | `/api/v1/admin/catalog/combos/{comboId}` | Update combo price, included quantities, or availability |
-| `GET` | `/api/v1/admin/coupons` | List coupons |
-| `POST` | `/api/v1/admin/coupons` | Create a coupon |
-| `PATCH` | `/api/v1/admin/coupons/{couponId}` | Update or deactivate a coupon |
+| `PATCH` | `/api/v1/admin/catalog/combos/{comboId}` | Update combo details, included quantities, items, or availability |
+| `DELETE` | `/api/v1/admin/catalog/combos/{comboId}` | Soft-archive a catalog combo |
 
-Use `available: false` to deactivate catalog entries instead of deleting records referenced by orders. The catalog response should include item `id`, `name`, `available`, `sortOrder`, and applicable `priceCents`/rules; combos additionally need `sizeId`, `priceCents`, and included topping, fruit, and extra quantities. Admin lists should return stable IDs and ISO-8601 timestamps. Paginated order lists should use a shape such as `{ "orders": [], "page": 1, "limit": 20, "total": 0 }`.
-
-The dashboard response should provide `ordersToday`, `waitingPreparation`, `inProduction`, `completedToday`, counts by status, and a short `recentOrders` list. The existing database defaults new orders to `received`; the remaining statuses are not yet defined or managed by the API. If adopting this contract, use these values consistently in dashboard counts, order filters, and status updates: `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, `completed`.
-
-If customers will enter coupon codes at checkout, also add a public `POST /api/v1/coupons/validate` endpoint and validate/reapply the discount during `POST /api/v1/orders`. The current checkout has no coupon field, so this endpoint is not required to connect the current Admin screen.
+The catalog Admin UI supports creating, editing, pausing/reactivating, and archiving items and combos. Archive uses `deleted_at` so references and order history remain intact. The dashboard and order modules refresh through the authenticated proxy. There is no coupon API or active coupon workflow, despite the retained coupons navigation/module placeholder.
 
 ### Autenticação e regras do servidor
 
-Every `/api/v1/admin/*` route must require authorization on the backend; protecting the `/admin` page and enabling CORS are not sufficient. The current `jade_admin_session` cookie is created and verified by the Next.js app, is scoped to `/admin`, and is not a credential the external API recognizes. Do not expose `ADMIN_SESSION_SECRET` or a backend service credential in browser code. Either add a Next.js server-side proxy that verifies this session before calling the backend, or implement a backend-owned admin login/session and authorize each admin request there.
+The Next.js login verifies `ADMIN_USERNAME`/`ADMIN_PASSWORD` server-side and sets the signed `HttpOnly` `jade_admin_session` cookie. `/admin/api/[...path]` verifies that session, then adds the server-only `ADMIN_API_KEY` when forwarding to `NEXT_PUBLIC_API_URL`. The same `ADMIN_API_KEY` must be set in the API environment. Never expose it to browser code or use a `NEXT_PUBLIC_` prefix.
 
-The API's current CORS configuration allows only `GET`, `POST`, and `OPTIONS`. If the browser calls admin `PATCH` routes directly, update the backend CORS allowlist to include `PATCH` (and any chosen authentication headers); CORS is not an authorization mechanism. A Next.js server-side proxy avoids exposing backend credentials to the browser.
+The proxy forwards `GET`, `POST`, `PATCH`, and `DELETE` server-to-server, so browser CORS does not authorize Admin actions. Backend authorization remains required even when the frontend session is valid.
 
-The current order submission boundary is `submitDeliveryOrder()` in `acai-builder.tsx`. When extending checkout and catalog APIs:
+The current order submission boundary is `submitDeliveryOrder()` in `acai-builder.tsx`. Remaining backend/product work:
 
-1. Define a server-side order DTO/schema for items, combo id, customizations, address, payment selection, change amount, delivery fee, and final total.
-2. Recalculate all prices and combo allowances on the server; never trust client-submitted totals/prices.
-3. Create a pending order through a validated API and return an order identifier/status.
-4. Decide whether WhatsApp remains a notification channel or whether the Admin dashboard is the primary order inbox.
-5. Ensure changes made in the admin-managed catalog are also served to the customer-facing menu/configurator; the current `GET /api/v1/menu/combos` serves only a static combo list and does not expose the builder's flavors, sizes, toppings, sauces, condiment positions, fruits, or extras.
-6. Add explicit consent/retention rules for contact and address data; account creation should remain optional unless the product decision changes.
+1. Recalculate catalog prices, combo allowances, and order totals on the server before treating an order as payable.
+2. Decide whether WhatsApp remains a customer confirmation/notification channel or whether the Admin dashboard becomes the primary order inbox.
+3. Define retention and access rules for customer contact and delivery-address data.
+4. Add coupon API and checkout support only after the coupon workflow is approved; neither is currently implemented.
 
-The suggested `dashboard` and `orders` endpoints support monitoring and status management. Catalog and coupon management require the CRUD routes above. These are proposed backend contracts; no admin API implementation is included in either repository as of the backend commit referenced above.
+Catalog changes already flow to the public storefront through `/api/v1/menu/catalog`. Orders are persisted in PostgreSQL, but the customer still needs to confirm/send the opened WhatsApp message; a failed API request is reported in the storefront while WhatsApp remains available.
 
 ## 10. Important open decisions before backend/launch
 
-- Confirm current combo prices, especially Combo Marmita (R$ 28,90 in source versus earlier R$ 26,90 request).
-- Confirm açaí livre prices and included quantities. Current allowance is six toppings plus one fruit; earlier discussion mentioned three default toppings, so business approval is needed.
+- Confirm the active catalog prices, combo inclusions, builder allowances, and delivery fee with the business before launch; the database/Admin catalog is the operational source of truth.
 - Confirm whether the selected flavor should affect price or combo availability (currently it does not).
 - Confirm whether delivery address should include city/state; current form stores street, number, neighborhood, postal code, complement, reference.
 - Confirm whether “Cartão na entrega” means debit, credit, or either, and whether any machine/fees apply.
 - Confirm if cash change amount means “troco para” (the entered amount must be at least the order total; current HTML validation enforces this).
-- Ensure the hardcoded WhatsApp phone is the correct production number and centralize it before adding API config.
-- The catalog includes no standalone product ordering anymore; combos lead to builder. The separate product examples remain only for hero imagery/copy.
+- Ensure the hardcoded WhatsApp phone is the correct production number and centralize it before changing it.
+- Decide whether catalog components should become standalone purchasable products; currently they are selections inside each configured açaí.
+- Implement server-side price and catalog-ID validation before using the client estimates as payable totals.
+- Decide whether to implement coupon workflow; the retained Admin navigation does not currently have coupon API support.
 
 ## 11. Maintenance conventions
 
@@ -225,13 +201,13 @@ The suggested `dashboard` and `orders` endpoints support monitoring and status m
 
 Run these in the browser after changing builder, combo, or checkout behavior:
 
-1. On first load, confirm the builder has no flavor/size/condiment choices selected and that the total shows the fixed delivery fee only.
-2. Select each catalog combo. Confirm its size is selected and locked, combo price/inclusions are correct, and the total includes delivery.
-3. Exceed a combo allowance for toppings, fruit, and extras. Cancel once to ensure the combo remains; confirm once to ensure the attempted item is added and mode becomes açaí livre.
-4. Change sauces using radio buttons; verify exactly one sauce or “Sem calda” is selected and no sauce radio is disabled.
-5. Select the three-layer condiment position; confirm the R$ 3 surcharge appears in the summary and WhatsApp message.
-6. Try to continue to checkout without flavor or size; confirm the builder alert prevents navigation.
+1. On first load, confirm the public catalog loads and the builder has no flavor/size choices selected; with an empty cart, the estimate includes only the per-order delivery rule.
+2. Confirm featured cards reflect the first two available sizes/combos, and the expandable catalog lists all active sizes, combos, and configurator choices.
+3. Select a free size and a combo in separate configurations. Confirm size/price/inclusions load correctly, each can be added to the cart, and the cart can hold multiple lines.
+4. Exceed a combo allowance for toppings, fruit, and extras. Cancel once to ensure the combo remains; confirm once to ensure the attempted item is added and mode becomes açaí livre.
+5. Change sauces; verify exactly one sauce or “Sem calda” is selected. Select condiment positions and confirm any catalog surcharge is reflected.
+6. Try to add or continue without flavor or size; confirm validation blocks the incomplete configuration. Verify the 20-line cart limit and line removal.
 7. On checkout, submit empty fields; native validation should block submission. Fill required fields, select a payment method, and verify Back preserves entered delivery details.
 8. Select cash and enable change. Confirm the change field appears, is required, and cannot be less than the current total. Switch to another payment method and confirm the field disappears.
-9. Capture/intercept the WhatsApp URL and verify it contains configuration, fixed delivery fee, final total, address, payment method, and change request when applicable.
-10. On mobile, verify the floating total updates, hides when the summary enters the viewport, reappears when scrolling back up, and does not obscure checkout actions. On desktop, verify the floating total is hidden and summary remains visible.
+9. Capture/intercept the WhatsApp URL and API request. Verify every cart line, per-order delivery fee, total estimate, address, payment method, and change request are included; verify the API failure message still leaves WhatsApp available.
+10. On mobile, verify cart lines and total remain usable, the floating total does not obscure checkout actions, and the catalog expands without horizontal overflow. On desktop, verify the summary remains visible.

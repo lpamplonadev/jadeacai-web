@@ -1,6 +1,6 @@
 # Jade Açaí
 
-Landing page de combos e montagem personalizada de açaí, integrada à API para carregar o catálogo e registrar pedidos. A rota `/admin` contém o acesso protegido e a primeira estrutura do painel; métricas e gestão de pedidos aguardam endpoints administrativos no backend.
+Loja Jade Açaí com cardápio carregado da API, montador de açaí, carrinho com várias configurações por pedido e painel administrativo protegido em `/admin`. O Admin consulta pedidos, atualiza etapas, apresenta indicadores e gerencia itens e combos do catálogo.
 
 ## Requisitos
 
@@ -18,19 +18,21 @@ Abra a URL indicada pelo Next.js (normalmente http://localhost:3000). Se a porta
 
 ## Acesso administrativo
 
-Configure estas variáveis privadas no `.env.local` para desenvolvimento e no ambiente do serviço frontend no Render para produção:
+Configure estas variáveis no `.env.local` para desenvolvimento e nas Environment Variables do projeto Vercel para produção. `NEXT_PUBLIC_API_URL` é a URL pública da API; as demais credenciais são server-side:
 
 ```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ADMIN_USERNAME=seu-usuario-administrativo
 ADMIN_PASSWORD=sua-senha-forte
 ADMIN_SESSION_SECRET=chave-aleatoria-com-pelo-menos-32-caracteres
+ADMIN_API_KEY=mesma-chave-privada-configurada-no-backend
 ```
 
-Gere uma chave de sessão com `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Não use o prefixo `NEXT_PUBLIC_` nem compartilhe ou versione essas credenciais. Depois de alterar as variáveis de produção, faça novo deploy do frontend.
+Gere uma chave de sessão com `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Use pelo menos 32 caracteres para `ADMIN_API_KEY`; não aplique o prefixo `NEXT_PUBLIC_` a credenciais, nem compartilhe ou versione esses valores. Depois de alterar as variáveis de produção, faça novo deploy do frontend.
 
-O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. Isso protege a interface `/admin`; antes de conectar dados administrativos, a API também precisa autenticar e autorizar as rotas de leitura e alteração. CORS sozinho não substitui autenticação.
+O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. As chamadas administrativas passam por `/admin/api/...`: o Route Handler verifica a sessão e encaminha as chamadas ao backend com `ADMIN_API_KEY`. Configure `NEXT_PUBLIC_API_URL` e as variáveis de sessão no projeto Vercel; configure a mesma `ADMIN_API_KEY` privada também no backend. Nunca use `NEXT_PUBLIC_ADMIN_API_KEY` nem envie a chave ao navegador.
 
-O backend fica no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api). O frontend já usa `GET /health`, `GET /api/v1/menu/combos` e `POST /api/v1/orders`; o backend ainda não implementa rotas administrativas. O estado verificado e as rotas Admin que faltam estão documentados em [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md#9-contrato-atual-da-api-e-lacunas-admin).
+O backend fica no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api). A loja usa `GET /api/v1/menu/catalog` e `POST /api/v1/orders`; o Admin usa endpoints protegidos de dashboard, pedidos e catálogo. Os contratos e os limites atuais estão detalhados em [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
 
 ## Verificações
 
@@ -43,16 +45,19 @@ npm run build
 ## Estrutura principal
 
 - `app/page.tsx`: compõe a landing e controla o slide da hero e o combo selecionado.
-- `app/admin/page.tsx`: login protegido e dashboard administrativo inicial.
+- `app/admin/page.tsx`: login protegido e módulos administrativos de dashboard, pedidos, catálogo e cupons.
 - `app/admin/actions.ts`: ações de login e logout no servidor.
-- `components/admin/modules/`: módulos de dashboard, pedidos, catálogo e cupons, exibidos dentro da rota única `/admin`.
+- `app/admin/api/[...path]/route.ts`: proxy server-side que verifica a sessão e encaminha métodos administrativos permitidos com `ADMIN_API_KEY`.
+- `components/admin/modules/dashboard-module.tsx`: métricas do dia, gráfico por etapa, pedidos recentes, polling e alerta sonoro opcional para novos pedidos.
+- `components/admin/modules/orders-module.tsx` e `order-details-dialog.tsx`: lista paginada, filtro, detalhes e alteração de etapas dos pedidos.
+- `components/admin/modules/catalog-module.tsx` e `catalog-editor-dialog.tsx`: CRUD administrativo de itens e combos, pausa/reativação e arquivamento.
 - `app/layout.tsx`: layout raiz, metadados, idioma e fontes Next.
 - `app/globals.css`: paleta, tokens Tailwind e estilos globais.
-- `components/menu/menu-data.tsx`: produtos usados na hero e combos exibidos no catálogo.
+- `components/menu/menu-data.tsx`: tipos e imagens ilustrativas; itens e combos comerciais são carregados do backend.
 - `components/menu/product-hero.tsx`: carrossel de quatro campanhas; duas levam à montagem livre e duas ao catálogo.
-- `components/menu/product-catalog.tsx`: cards dos combos e seleção de combo para personalização.
-- `components/menu/acai-builder.tsx`: estado, cálculo, regras do combo, formulário em duas etapas e criação da mensagem do pedido.
-- `components/menu/acai-builder-data.ts`: opções, preços, limites, taxa de entrega, WhatsApp e conversão de combo em tamanho de copo.
+- `components/menu/product-catalog.tsx`: destaques de açaí livre e combos e expansão do catálogo completo.
+- `components/menu/acai-builder.tsx`: configuração de açaís, carrinho em memória, cálculo do pedido, checkout e envio de uma solicitação multi-item à API/WhatsApp.
+- `components/menu/acai-builder-data.ts`: tipos de opções do configurador e regras convertidas do catálogo público.
 - `components/menu/choice-checklist.tsx`: checklist reutilizável de escolhas múltiplas.
 - `components/menu/order-summary.tsx`: resumo, total e barra móvel flutuante.
 - `components/menu/combo-limit-dialog.tsx`: confirmação ao ultrapassar inclusão de combo.
@@ -63,9 +68,12 @@ npm run build
 - `components/ui/`: componentes UI gerados/usados pelo projeto.
 - `lib/utils.ts`: utilitários compartilhados, incluindo `cn`.
 - `lib/admin-auth.ts`: validação de credenciais e sessão administrativa assinada.
+- `lib/jade-api.ts`: cliente da API pública, conversão do catálogo e payload multi-item.
 - `public/`: arquivos estáticos locais.
 
 Para regras de negócio, fluxo de compra, convenções visuais, pendências e integração futura com API/Admin, consulte [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
+
+O carrinho atual reúne até 20 configurações de açaí em um único pedido. Complementos do catálogo são selecionados dentro do montador; ainda não há compra avulsa de cada sabor, fruta ou acompanhamento como linha independente.
 
 ## Observações
 
