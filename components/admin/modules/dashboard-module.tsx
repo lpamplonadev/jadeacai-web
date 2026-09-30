@@ -97,7 +97,9 @@ export function DashboardModule() {
   const [error, setError] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundError, setSoundError] = useState("");
-  const [newOrderAlert, setNewOrderAlert] = useState<NewOrderAlert | null>(null);
+  const [newOrderAlert, setNewOrderAlert] = useState<NewOrderAlert | null>(
+    null,
+  );
   const hasLoadedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const orderSnapshotRef = useRef<{
@@ -202,10 +204,7 @@ export function DashboardModule() {
         // The regular dashboard request already reports connection errors.
       } finally {
         if (!stopped) {
-          pollTimer = window.setTimeout(
-            () => void pollForNewOrders(),
-            10_000,
-          );
+          pollTimer = window.setTimeout(() => void pollForNewOrders(), 60_000);
         }
       }
     }
@@ -332,8 +331,12 @@ export function DashboardModule() {
             type="button"
             onClick={() => void toggleSoundAlerts()}
             aria-pressed={soundEnabled}
-            aria-label={soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
-            title={soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"}
+            aria-label={
+              soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"
+            }
+            title={
+              soundEnabled ? "Desativar alerta sonoro" : "Ativar alerta sonoro"
+            }
             className={`flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-bold transition-colors ${soundEnabled ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-[#d6d6ce] bg-white text-[#48483f] hover:border-[#8b1a2e] hover:text-[#8b1a2e]"}`}
           >
             {soundEnabled ? (
@@ -366,7 +369,8 @@ export function DashboardModule() {
             {newOrderAlert.count === 1 && (
               <>
                 {" "}
-                {formatOrderNumber(newOrderAlert.order.orderNumber)} · {newOrderAlert.order.customerName}
+                {formatOrderNumber(newOrderAlert.order.orderNumber)} ·{" "}
+                {newOrderAlert.order.customerName}
               </>
             )}
           </p>
