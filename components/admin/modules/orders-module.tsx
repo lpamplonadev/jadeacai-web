@@ -22,6 +22,15 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const orderStatusBadgeStyles: Record<string, string> = {
+  received: "bg-[#f8eeee] text-[#731a2a]",
+  preparing: "bg-amber-100 text-amber-800",
+  ready: "bg-emerald-100 text-emerald-800",
+  out_for_delivery: "bg-sky-100 text-sky-800",
+  delivered: "bg-teal-100 text-teal-800",
+  completed: "bg-slate-100 text-slate-700",
+};
+
 export function OrdersModule() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [page, setPage] = useState(1);
@@ -261,7 +270,9 @@ export function OrdersModule() {
                         {currency.format(order.estimatedTotalCents / 100)}
                       </td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex rounded-full bg-[#f8eeee] px-2.5 py-1 text-xs font-bold text-[#731a2a]">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${orderStatusBadgeStyles[order.status] ?? "bg-slate-100 text-slate-700"}`}
+                        >
                           {orderStatuses.find((item) => item.value === order.status)?.label ?? order.status}
                         </span>
                       </td>
