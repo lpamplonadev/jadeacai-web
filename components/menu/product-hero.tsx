@@ -4,6 +4,7 @@ import {
   ArrowRightIcon,
   CheckIcon,
 } from "@phosphor-icons/react";
+import { currency, type BuilderCatalogData } from "@/components/menu/acai-builder-data";
 import type { MenuCombo, Product } from "@/components/menu/menu-data";
 
 type HeroPromotion = {
@@ -24,6 +25,7 @@ type ProductHeroProps = {
   activeSlide: number;
   products: Product[];
   combos: MenuCombo[];
+  catalog: BuilderCatalogData | null;
   onSelectSlide: (index: number) => void;
   onChangeSlide: (direction: number) => void;
 };
@@ -32,26 +34,39 @@ export function ProductHero({
   activeSlide,
   products,
   combos,
+  catalog,
   onSelectSlide,
   onChangeSlide,
 }: ProductHeroProps) {
+  const flavorNames = catalog?.flavors.map((flavor) => flavor.name) ?? [];
+  const startingPrice = catalog?.cupSizes.length
+    ? Math.min(...catalog.cupSizes.map((size) => size.price))
+    : null;
+  const freeDescription = catalog
+    ? `Escolha entre ${flavorNames.join(" ou ") || "os sabores disponíveis"}, ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} fruta(s) incluídos. Personalize e veja o valor antes de pedir.`
+    : "Carregando as opções e preços atuais do cardápio.";
+  const freePriceLabel = startingPrice === null
+    ? "Consulte as opções do cardápio"
+    : `Açaí livre a partir de ${currency.format(startingPrice)}`;
+
   const promotions: HeroPromotion[] = [
     {
-      name: "Açaí livre de banana",
+      name: flavorNames[0] ?? "Açaí livre",
       badge: "Açaí livre",
       headline: "Seu açaí,",
       highlight: "seu jeito.",
-      description:
-        "Escolha açaí de banana ou morango, até 6 acompanhamentos e 1 fruta incluídos. Personalize e veja o valor antes de pedir.",
+      description: freeDescription,
       ctaLabel: "Montar meu açaí",
       href: "#monte-seu-acai",
-      priceLabel: "Copos a partir de R$ 11,90",
+      priceLabel: freePriceLabel,
       image: products[0].image,
       imageAlt: products[0].imageAlt,
-      imageBadge: "Até 6 acompanhamentos incluídos",
+      imageBadge: catalog
+        ? `${catalog.includedToppings} acompanhamentos incluídos`
+        : "Cardápio atualizado",
     },
     {
-      name: "Açaí livre de morango",
+      name: flavorNames[1] ?? "Personalize seu açaí",
       badge: "Monte do seu jeito",
       headline: "Escolha cada",
       highlight: "detalhe.",
@@ -59,10 +74,10 @@ export function ProductHero({
         "Combine os sabores de açaí, acompanhamentos, calda, frutas e extras no montador.",
       ctaLabel: "Personalizar meu açaí",
       href: "#monte-seu-acai",
-      priceLabel: "Açaí livre a partir de R$ 11,90",
+      priceLabel: freePriceLabel,
       image: products[1].image,
       imageAlt: products[1].imageAlt,
-      imageBadge: "Banana ou morango",
+      imageBadge: flavorNames.join(" ou ") || "Opções do cardápio",
     },
     ...combos.slice(0, 2).map((combo) => ({
       name: combo.name,

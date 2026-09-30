@@ -18,6 +18,8 @@ export type Product = {
 
 export type MenuCombo = {
   id: string;
+  key?: string;
+  sizeId?: string;
   name: string;
   size: string;
   price: string;
@@ -28,6 +30,14 @@ export type MenuCombo = {
   tag: string;
   image: string;
   imageAlt: string;
+  items?: MenuComboItem[];
+};
+
+export type MenuComboItem = {
+  id: string;
+  kind: string;
+  name: string;
+  quantity: number;
 };
 
 export const products: Product[] = [

@@ -9,6 +9,25 @@ export type BuilderExtra = BuilderChoice & {
   price: number;
 };
 
+export type BuilderPriceChoice = BuilderChoice & {
+  price: number;
+};
+
+export type BuilderCatalogData = {
+  flavors: BuilderChoice[];
+  cupSizes: BuilderPriceChoice[];
+  toppings: BuilderPriceChoice[];
+  sauces: BuilderChoice[];
+  condimentPositions: (BuilderChoice & { price: number })[];
+  fruits: BuilderPriceChoice[];
+  extras: BuilderExtra[];
+  includedToppings: number;
+  includedFruits: number;
+  additionalToppingPrice: number;
+  additionalFruitPrice: number;
+  deliveryFee: number;
+};
+
 export type SelectionGroup = "toppings" | "fruits" | "extras";
 export type PendingSelection = { group: SelectionGroup; id: string };
 
@@ -17,24 +36,24 @@ export const flavors: BuilderChoice[] = [
   { id: "morango", name: "Açaí de morango" },
 ];
 
-export const cupSizes = [
+export const cupSizes: BuilderPriceChoice[] = [
   { id: "300", name: "300 ml", price: 11.9 },
   { id: "500", name: "500 ml", price: 15.9 },
   { id: "770", name: "770 ml", price: 17.9 },
   { id: "1000", name: "Marmita", price: 25.9 },
 ];
 
-export const toppings: BuilderChoice[] = [
-  { id: "canudinho", name: "Biscoito canudinho" },
-  { id: "pacoca", name: "Paçoca" },
-  { id: "granulado", name: "Granulado" },
-  { id: "leite-em-po", name: "Leite em pó" },
-  { id: "disquete", name: "Disquete (M&M)" },
-  { id: "chocoball", name: "Chocoball" },
-  { id: "jujubas", name: "Jujubas" },
-  { id: "amendoim", name: "Amendoim" },
-  { id: "granola", name: "Granola" },
-  { id: "marshmallow", name: "Marshmallow" },
+export const toppings: BuilderPriceChoice[] = [
+  { id: "canudinho", name: "Biscoito canudinho", price: 1 },
+  { id: "pacoca", name: "Paçoca", price: 1 },
+  { id: "granulado", name: "Granulado", price: 1 },
+  { id: "leite-em-po", name: "Leite em pó", price: 1 },
+  { id: "disquete", name: "Disquete (M&M)", price: 1 },
+  { id: "chocoball", name: "Chocoball", price: 1 },
+  { id: "jujubas", name: "Jujubas", price: 1 },
+  { id: "amendoim", name: "Amendoim", price: 1 },
+  { id: "granola", name: "Granola", price: 1 },
+  { id: "marshmallow", name: "Marshmallow", price: 1 },
 ];
 
 export const sauces: BuilderChoice[] = [
@@ -58,12 +77,12 @@ export const condimentPositions = [
   },
 ];
 
-export type CondimentPosition = (typeof condimentPositions)[number];
+export type CondimentPosition = BuilderChoice & { price: number };
 
-export const fruits: BuilderChoice[] = [
-  { id: "morango", name: "Morango" },
-  { id: "banana", name: "Banana" },
-  { id: "uva", name: "Uva" },
+export const fruits: BuilderPriceChoice[] = [
+  { id: "morango", name: "Morango", price: 2 },
+  { id: "banana", name: "Banana", price: 2 },
+  { id: "uva", name: "Uva", price: 2 },
 ];
 
 export const extras: BuilderExtra[] = [
@@ -85,13 +104,17 @@ export const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-export function getCupSizeForCombo(combo: MenuCombo) {
+export function getCupSizeForCombo(
+  combo: MenuCombo,
+  availableCupSizes: BuilderPriceChoice[] = cupSizes,
+) {
   return (
-    cupSizes.find(
+    availableCupSizes.find(
       (size) =>
+        size.id === combo.sizeId ||
         size.name === combo.size ||
         `${size.id} ml` === combo.size ||
         (size.id === "1000" && combo.size === "1 litro"),
-    ) ?? cupSizes[1]
+    ) ?? availableCupSizes[0] ?? cupSizes[1]
   );
 }

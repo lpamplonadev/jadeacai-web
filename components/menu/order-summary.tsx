@@ -1,20 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, CheckIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CheckIcon, XIcon } from "@phosphor-icons/react";
 import {
   currency,
-  deliveryFee,
   type BuilderExtra,
   type CondimentPosition,
 } from "@/components/menu/acai-builder-data";
 import type { MenuCombo } from "@/components/menu/menu-data";
 
+export type CartSummaryItem = {
+  id: string;
+  name: string;
+  description: string;
+  subtotalCents: number;
+};
+
 type OrderSummaryProps = {
   selectedCombo: MenuCombo | null;
+  cartItems: CartSummaryItem[];
+  cartSubtotal: number;
+  hasCurrentConfiguration: boolean;
+  currentHasSelections: boolean;
+  canAddToCart: boolean;
+  onAddToCart: () => void;
+  onClearCurrent: () => void;
+  onRemoveCartItem: (id: string) => void;
   flavorName: string | null;
   sizeName: string | null;
   comboPrice: number;
+  deliveryFee: number;
   total: number;
   selectedToppingCount: number;
   sauceSummary: string;
@@ -30,9 +45,18 @@ type OrderSummaryProps = {
 
 export function OrderSummary({
   selectedCombo,
+  cartItems,
+  cartSubtotal,
+  hasCurrentConfiguration,
+  currentHasSelections,
+  canAddToCart,
+  onAddToCart,
+  onClearCurrent,
+  onRemoveCartItem,
   flavorName,
   sizeName,
   comboPrice,
+  deliveryFee,
   total,
   selectedToppingCount,
   sauceSummary,
@@ -82,9 +106,41 @@ export function OrderSummary({
         className="h-fit bg-dark p-5 text-white sm:p-6 lg:sticky lg:top-24"
       >
         <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blush">
-          {selectedCombo ? selectedCombo.name : "Açaí livre"}
+          {selectedCombo
+            ? selectedCombo.name
+            : cartItems.length > 0
+              ? `Carrinho · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
+              : "Açaí livre"}
         </p>
         <h3 className="mt-2 text-2xl font-black">Do jeitinho que você gosta</h3>
+        {cartItems.length > 0 && (
+          <section aria-label="Itens do carrinho" className="mt-5 border-b border-white/20 pb-5">
+            <ul className="space-y-3">
+              {cartItems.map((item) => (
+                <li key={item.id} className="flex items-start justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-bold text-white">{item.name}</p>
+                    <p className="mt-1 text-xs leading-5 text-blush">{item.description}</p>
+                    <p className="mt-1 text-xs font-bold text-white">
+                      {currency.format(item.subtotalCents / 100)}
+                    </p>
+                  </div>
+                  {checkoutStep === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveCartItem(item.id)}
+                      aria-label={`Remover ${item.name} do carrinho`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-blush hover:bg-white/10 hover:text-white"
+                    >
+                      <XIcon aria-hidden="true" size={17} />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {hasCurrentConfiguration && (
         <div className="mt-6 space-y-3 border-b border-white/20 pb-5 text-sm">
           <div className="flex justify-between gap-4">
             <span className="text-blush">Sabor</span>
@@ -142,10 +198,17 @@ export function OrderSummary({
               </span>
             </div>
           ))}
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Taxa de entrega</span>
-            <span>{currency.format(deliveryFee)}</span>
+        </div>
+        )}
+        {cartItems.length > 0 && (
+          <div className="mb-4 flex justify-between gap-4 text-sm">
+            <span className="text-blush">Subtotal do carrinho</span>
+            <span>{currency.format(cartSubtotal)}</span>
           </div>
+        )}
+        <div className="flex justify-between gap-4 border-t border-white/20 pt-4 text-sm">
+          <span className="text-blush">Taxa de entrega</span>
+          <span>{currency.format(deliveryFee)}</span>
         </div>
         <div className="flex items-end justify-between gap-4 py-5">
           <span className="text-sm font-semibold text-blush">
@@ -156,14 +219,34 @@ export function OrderSummary({
           </output>
         </div>
         {checkoutStep === 1 && (
-          <button
-            type="button"
-            onClick={onContinueToDelivery}
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark"
-          >
-            Continuar para entrega
-            <ArrowRightIcon aria-hidden="true" size={17} />
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={onAddToCart}
+              disabled={!canAddToCart}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-blush px-4 text-sm font-extrabold text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Adicionar ao carrinho
+            </button>
+            {cartItems.length > 0 && currentHasSelections && (
+              <button
+                type="button"
+                onClick={onClearCurrent}
+                className="min-h-10 w-full rounded-md text-xs font-bold text-blush underline underline-offset-2 hover:text-white"
+              >
+                Descartar configuração atual
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onContinueToDelivery}
+              disabled={cartItems.length === 0 && !canAddToCart}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {cartItems.length > 0 ? "Continuar para entrega" : "Adicionar e continuar"}
+              <ArrowRightIcon aria-hidden="true" size={17} />
+            </button>
+          </div>
         )}
         <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-blush">
           <CheckIcon aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
@@ -184,7 +267,11 @@ export function OrderSummary({
               Valor atual · ver detalhes
             </span>
             <span className="block truncate text-sm font-bold">
-              {selectedCombo ? selectedCombo.name : "Açaí livre"}
+              {selectedCombo
+                ? selectedCombo.name
+                : cartItems.length > 0
+                  ? `Carrinho · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
+                  : "Açaí livre"}
             </span>
           </span>
           <output

@@ -31,6 +31,25 @@ export type AdminOrder = {
   createdAt: string;
 };
 
+type OrderAcaiPayload = {
+  flavorId?: string;
+  sizeId?: string;
+  comboId?: string;
+  toppingIds?: string[];
+  sauceId?: string;
+  condimentPositionId?: string;
+  fruitIds?: string[];
+  extraIds?: string[];
+};
+
+type OrderItemPayload = {
+  id: string;
+  name: string;
+  description?: string;
+  estimatedSubtotalCents: number;
+  acai: OrderAcaiPayload;
+};
+
 export function formatOrderNumber(orderNumber: number) {
   return `#${String(orderNumber).padStart(4, "0")}`;
 }
@@ -55,16 +74,8 @@ export const orderStatuses = [
 
 type OrderPayload = {
   customer?: { name?: string; phone?: string };
-  acai?: {
-    flavorId?: string;
-    sizeId?: string;
-    comboId?: string;
-    toppingIds?: string[];
-    sauceId?: string;
-    condimentPositionId?: string;
-    fruitIds?: string[];
-    extraIds?: string[];
-  };
+  acai?: OrderAcaiPayload;
+  items?: OrderItemPayload[];
   delivery?: {
     postalCode?: string;
     street?: string;
@@ -139,9 +150,21 @@ export function OrderDetailsDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const payload = asOrderPayload(order.orderData);
-  const acai = payload.acai;
   const delivery = payload.delivery;
   const payment = payload.payment;
+  const orderItems: OrderItemPayload[] =
+    payload.items?.length
+      ? payload.items
+      : payload.acai
+        ? [
+            {
+              id: order.id,
+              name: combos.find((combo) => combo.id === payload.acai?.comboId)?.name ?? "Açaí livre",
+              estimatedSubtotalCents: order.estimatedTotalCents,
+              acai: payload.acai,
+            },
+          ]
+        : [];
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -180,7 +203,6 @@ export function OrderDetailsDialog({
     }[payment?.method ?? ""] ??
     payment?.method ??
     "Não informado";
-  const comboName = combos.find((combo) => combo.id === acai?.comboId)?.name;
   const changeFor = payment?.changeForCents;
 
   return (
@@ -242,36 +264,49 @@ export function OrderDetailsDialog({
 
           <section aria-labelledby="order-acai-title">
             <h3 id="order-acai-title" className="mb-3 text-sm font-black">
-              Açaí
+              Itens do pedido · {orderItems.length}
             </h3>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <OrderField label="Sabor">
-                {choiceName(flavors, acai?.flavorId)}
-              </OrderField>
-              <OrderField label="Tamanho">
-                {choiceName(cupSizes, acai?.sizeId)}
-              </OrderField>
-              <OrderField label="Combo">
-                {comboName ?? (acai?.comboId ? acai.comboId : "Açaí livre")}
-              </OrderField>
-              <OrderField label="Calda">
-                {acai?.sauceId === "none"
-                  ? "Sem calda"
-                  : choiceName(sauces, acai?.sauceId)}
-              </OrderField>
-              <OrderField label="Posição dos condimentos">
-                {choiceName(condimentPositions, acai?.condimentPositionId)}
-              </OrderField>
-              <OrderField label="Acompanhamentos">
-                {choiceNames(toppings, acai?.toppingIds)}
-              </OrderField>
-              <OrderField label="Frutas">
-                {choiceNames(fruits, acai?.fruitIds)}
-              </OrderField>
-              <OrderField label="Extras">
-                {choiceNames(extras, acai?.extraIds)}
-              </OrderField>
-            </dl>
+            <div className="space-y-4">
+              {orderItems.map((item, index) => (
+                <article key={item.id || index} className="border-b border-[#e8e8e2] pb-4 last:border-0">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <h4 className="text-sm font-extrabold text-[#8b1a2e]">
+                      {index + 1}. {item.name}
+                    </h4>
+                    <span className="shrink-0 text-xs font-bold">
+                      {currency.format(item.estimatedSubtotalCents / 100)}
+                    </span>
+                  </div>
+                  {item.description && (
+                    <ul className="mb-3 flex flex-wrap gap-1.5">
+                      {item.description.split(" · ").map((detail) => (
+                        <li key={detail} className="rounded bg-[#f3f3ef] px-2 py-1 text-[11px] font-medium text-[#55554e]">
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <dl className="grid gap-2 text-xs sm:grid-cols-2">
+                    <OrderField label="Sabor">{choiceName(flavors, item.acai.flavorId)}</OrderField>
+                    <OrderField label="Tamanho">{choiceName(cupSizes, item.acai.sizeId)}</OrderField>
+                    <OrderField label="Calda">
+                      {item.acai.sauceId === "none" ? "Sem calda" : choiceName(sauces, item.acai.sauceId)}
+                    </OrderField>
+                    <OrderField label="Posição dos condimentos">
+                      {choiceName(condimentPositions, item.acai.condimentPositionId)}
+                    </OrderField>
+                    <OrderField label="Acompanhamentos">
+                      {choiceNames(toppings, item.acai.toppingIds)}
+                    </OrderField>
+                    <OrderField label="Frutas">{choiceNames(fruits, item.acai.fruitIds)}</OrderField>
+                    <OrderField label="Extras">{choiceNames(extras, item.acai.extraIds)}</OrderField>
+                  </dl>
+                </article>
+              ))}
+              {!orderItems.length && (
+                <p className="text-sm text-[#77776e]">Detalhes dos itens indisponíveis.</p>
+              )}
+            </div>
           </section>
 
           <section aria-labelledby="order-delivery-title">
