@@ -2,16 +2,11 @@
 
 import { ArrowClockwiseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type FormEvent } from "react";
-
-type AdminOrder = {
-  id: string;
-  status: string;
-  customerName: string;
-  customerPhone: string;
-  estimatedTotalCents: number;
-  orderData: unknown;
-  createdAt: string;
-};
+import {
+  OrderDetailsDialog,
+  orderStatuses,
+  type AdminOrder,
+} from "@/components/admin/modules/order-details-dialog";
 
 type OrdersResponse = {
   orders: AdminOrder[];
@@ -20,23 +15,10 @@ type OrdersResponse = {
   total: number;
 };
 
-const orderStatuses = [
-  { value: "received", label: "Recebidos" },
-  { value: "preparing", label: "Em preparo" },
-  { value: "ready", label: "Prontos" },
-  { value: "out_for_delivery", label: "Saiu para entrega" },
-  { value: "delivered", label: "Entregues" },
-  { value: "completed", label: "Concluídos" },
-];
-
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
-
-function formatStatus(status: string) {
-  return orderStatuses.find((item) => item.value === status)?.label ?? status;
-}
 
 export function OrdersModule() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -48,6 +30,7 @@ export function OrdersModule() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const limit = 20;
 
   useEffect(() => {
@@ -56,7 +39,10 @@ export function OrdersModule() {
     async function loadOrders() {
       setLoading(true);
       setError("");
-      const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const query = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
       if (status) query.set("status", status);
       if (search) query.set("search", search);
 
@@ -65,7 +51,8 @@ export function OrdersModule() {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) throw new Error("Não foi possível carregar os pedidos.");
+        if (!response.ok)
+          throw new Error("Não foi possível carregar os pedidos.");
 
         const result = (await response.json()) as OrdersResponse;
         setOrders(result.orders);
@@ -74,7 +61,9 @@ export function OrdersModule() {
         if (!controller.signal.aborted) {
           setOrders([]);
           setTotal(0);
-          setError("Não foi possível carregar os pedidos. Verifique a API e tente novamente.");
+          setError(
+            "Não foi possível carregar os pedidos. Verifique a API e tente novamente.",
+          );
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -91,11 +80,27 @@ export function OrdersModule() {
     setSearch(searchInput.trim());
   }
 
+  function handleStatusUpdated(orderId: string, updatedStatus: string) {
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === orderId ? { ...order, status: updatedStatus } : order,
+      ),
+    );
+    setSelectedOrder((current) =>
+      current?.id === orderId ? { ...current, status: updatedStatus } : current,
+    );
+    setRefreshKey((value) => value + 1);
+  }
+
   const firstOrder = total === 0 ? 0 : (page - 1) * limit + 1;
   const lastOrder = Math.min(page * limit, total);
 
   return (
-    <section id="pedidos" aria-labelledby="orders-title" className="scroll-mt-8">
+    <section
+      id="pedidos"
+      aria-labelledby="orders-title"
+      className="scroll-mt-8"
+    >
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="orders-title" className="text-xl font-black">
@@ -162,7 +167,10 @@ export function OrdersModule() {
       </form>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+        <p
+          role="alert"
+          className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+        >
           {error}
         </p>
       )}
@@ -183,12 +191,24 @@ export function OrdersModule() {
             <table className="w-full min-w-[850px] border-collapse text-left text-sm">
               <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Pedido</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Cliente</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Data</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Total estimado</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Status</th>
-                  <th scope="col" className="px-4 py-3 font-extrabold">Dados</th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Pedido
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Cliente
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Data
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Total estimado
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-extrabold">
+                    Dados
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e8e8e2]">
@@ -198,8 +218,12 @@ export function OrdersModule() {
                       {order.id.slice(0, 8)}
                     </td>
                     <td className="px-4 py-4">
-                      <p className="font-bold text-[#33332d]">{order.customerName}</p>
-                      <p className="mt-1 text-xs text-[#77776e]">{order.customerPhone}</p>
+                      <p className="font-bold text-[#33332d]">
+                        {order.customerName}
+                      </p>
+                      <p className="mt-1 text-xs text-[#77776e]">
+                        {order.customerPhone}
+                      </p>
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 text-xs text-[#68685f]">
                       {new Date(order.createdAt).toLocaleString("pt-BR")}
@@ -209,18 +233,17 @@ export function OrdersModule() {
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-flex rounded-full bg-[#f8eeee] px-2.5 py-1 text-xs font-bold text-[#731a2a]">
-                        {formatStatus(order.status)}
+                        {orderStatuses.find((item) => item.value === order.status)?.label ?? order.status}
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <details className="max-w-xs">
-                        <summary className="cursor-pointer font-bold text-[#8b1a2e]">
-                          Ver pedido
-                        </summary>
-                        <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-md bg-[#f3f3ef] p-3 text-xs text-[#33332d]">
-                          {JSON.stringify(order.orderData, null, 2)}
-                        </pre>
-                      </details>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(order)}
+                        className="font-bold text-[#8b1a2e] underline decoration-[#c8c8bf] underline-offset-2 hover:text-[#6b1222]"
+                      >
+                        Ver pedido
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -251,6 +274,14 @@ export function OrdersModule() {
             </div>
           </div>
         </>
+      )}
+      {selectedOrder && (
+        <OrderDetailsDialog
+          key={selectedOrder.id}
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+          onStatusUpdated={handleStatusUpdated}
+        />
       )}
     </section>
   );
