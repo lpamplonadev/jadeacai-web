@@ -50,7 +50,7 @@ export const orderStatuses = [
   { value: "ready", label: "Pronto" },
   { value: "out_for_delivery", label: "Saiu para entrega" },
   { value: "delivered", label: "Entregue" },
-  { value: "finalized", label: "Finalizado" },
+  { value: "completed", label: "Concluído" },
 ];
 
 type OrderPayload = {
@@ -206,12 +206,7 @@ export function OrderDetailsDialog({
             {order.customerName}
           </h2>
           <p className="mt-1 text-sm text-[#77776e]">
-            {formatOrderDate(order.orderDate)} ·{" "}
-            {new Date(order.createdAt).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "America/Sao_Paulo",
-            })}
+            {formatOrderDate(order.orderDate)} · {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
           </p>
         </div>
         <button

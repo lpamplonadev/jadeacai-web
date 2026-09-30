@@ -28,7 +28,7 @@ const orderStatusBadgeStyles: Record<string, string> = {
   ready: "bg-emerald-100 text-emerald-800",
   out_for_delivery: "bg-sky-100 text-sky-800",
   delivered: "bg-teal-100 text-teal-800",
-  finalized: "bg-slate-100 text-slate-700",
+  completed: "bg-slate-100 text-slate-700",
 };
 
 export function OrdersModule() {
@@ -251,8 +251,7 @@ export function OrdersModule() {
                       colSpan={6}
                       className="px-4 py-3 text-left text-xs font-extrabold uppercase text-[#731a2a]"
                     >
-                      {formatOrderDate(day)} · {dayOrders.length}{" "}
-                      {dayOrders.length === 1 ? "pedido" : "pedidos"}
+                      {formatOrderDate(day)} · {dayOrders.length} {dayOrders.length === 1 ? "pedido" : "pedidos"}
                     </th>
                   </tr>
                   {dayOrders.map((order) => (
@@ -261,19 +260,11 @@ export function OrdersModule() {
                         {formatOrderNumber(order.orderNumber)}
                       </td>
                       <td className="px-4 py-4">
-                        <p className="font-bold text-[#33332d]">
-                          {order.customerName}
-                        </p>
-                        <p className="mt-1 text-xs text-[#77776e]">
-                          {order.customerPhone}
-                        </p>
+                        <p className="font-bold text-[#33332d]">{order.customerName}</p>
+                        <p className="mt-1 text-xs text-[#77776e]">{order.customerPhone}</p>
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 text-xs text-[#68685f]">
-                        {new Date(order.createdAt).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          timeZone: "America/Sao_Paulo",
-                        })}
+                        {new Date(order.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4 font-bold text-[#33332d]">
                         {currency.format(order.estimatedTotalCents / 100)}
@@ -282,9 +273,7 @@ export function OrdersModule() {
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${orderStatusBadgeStyles[order.status] ?? "bg-slate-100 text-slate-700"}`}
                         >
-                          {orderStatuses.find(
-                            (item) => item.value === order.status,
-                          )?.label ?? order.status}
+                          {orderStatuses.find((item) => item.value === order.status)?.label ?? order.status}
                         </span>
                       </td>
                       <td className="px-4 py-4">
