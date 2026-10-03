@@ -260,12 +260,28 @@ export function ProductCatalog({
                 >
                   <div className="relative h-48 overflow-hidden bg-petal">
                     {product.image && (
+                      <>
+                        <Image
+                          src={product.image}
+                          alt=""
+                          aria-hidden="true"
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="scale-110 object-cover opacity-60 blur-xl"
+                        />
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 bg-cream/25"
+                        />
+                      </>
+                    )}
+                    {product.image && (
                       <Image
                         src={product.image}
                         alt={product.imageAlt}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-contain"
+                        className="z-10 object-contain"
                       />
                     )}
                     <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
