@@ -17,6 +17,7 @@ type ApiStatus = "checking" | "online" | "offline";
 
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
   const [selectedCombo, setSelectedCombo] = useState<MenuCombo | null>(null);
   const [selectedSizeId, setSelectedSizeId] = useState<string | null>(null);
   const [sizeSelectionRequest, setSizeSelectionRequest] = useState(0);
@@ -97,7 +98,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-cream text-text">
-      <SiteHeader />
+      <SiteHeader cartCount={cartCount} />
 
       <main id="inicio">
         <ProductHero
@@ -108,23 +109,34 @@ export default function Home() {
           onSelectSlide={setActiveSlide}
           onChangeSlide={changeSlide}
         />
-        {builderCatalog && (
-          <ProductCatalog
-            combos={menuCombos}
-            catalog={builderCatalog}
-            products={products}
-            onChooseCombo={chooseCombo}
-            onChooseSize={chooseFreeSize}
-            apiStatus={apiStatus}
-            catalogError={catalogError}
-          />
-        )}
+          {builderCatalog ? (
+            <ProductCatalog
+              combos={menuCombos}
+              catalog={builderCatalog}
+              products={products}
+              onChooseCombo={chooseCombo}
+              onChooseSize={chooseFreeSize}
+              apiStatus={apiStatus}
+              catalogError={catalogError}
+            />
+          ) : (
+            <section
+              id="catalogo"
+              role="status"
+              className="mx-auto max-w-7xl px-5 py-14 text-sm font-semibold text-crimson md:px-8"
+            >
+              {catalogError
+                ? "Não foi possível carregar o cardápio agora."
+                : "Carregando cardápio..."}
+            </section>
+          )}
         {builderCatalog ? (
           <AcaiBuilder
             selectedCombo={selectedCombo}
             initialSizeId={selectedSizeId}
             sizeSelectionRequest={sizeSelectionRequest}
             onClearCombo={() => setSelectedCombo(null)}
+            onCartCountChange={setCartCount}
             catalog={builderCatalog}
           />
         ) : (

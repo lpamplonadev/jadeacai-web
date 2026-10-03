@@ -1,6 +1,6 @@
 "use client";
 
-import { XIcon } from "@phosphor-icons/react";
+import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export type CatalogItemKind =
@@ -119,7 +119,14 @@ export function CatalogEditorDialog({
   const [sortOrder, setSortOrder] = useState(
     String(item?.sortOrder ?? combo?.sortOrder ?? 0),
   );
-  const [sizeItemId, setSizeItemId] = useState(combo?.sizeItemId ?? "");
+  const [selectedSizes, setSelectedSizes] = useState(() => {
+    const linkedSizes = combo?.items
+      .filter((comboItem) => comboItem.kind === "size")
+      .map((comboItem) => ({ itemId: comboItem.itemId, quantity: comboItem.quantity }));
+    return linkedSizes?.length
+      ? linkedSizes
+      : [{ itemId: combo?.sizeItemId ?? "", quantity: 1 }];
+  });
   const [includedToppings, setIncludedToppings] = useState(
     String(combo?.includedToppings ?? 0),
   );
@@ -134,10 +141,9 @@ export function CatalogEditorDialog({
   const [imageAlt, setImageAlt] = useState(combo?.imageAlt ?? "");
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
     Object.fromEntries(
-      (combo?.items ?? []).map((comboItem) => [
-        comboItem.itemId,
-        comboItem.quantity,
-      ]),
+      (combo?.items ?? [])
+        .filter((comboItem) => comboItem.kind !== "size")
+        .map((comboItem) => [comboItem.itemId, comboItem.quantity]),
     ),
   );
   const [saving, setSaving] = useState(false);
@@ -171,6 +177,7 @@ export function CatalogEditorDialog({
           : "POST";
     const priceCents = toPriceCents(price);
 
+    const comboSizes = selectedSizes.filter((portion) => portion.itemId);
     const body =
       editor.type === "item"
         ? {
@@ -182,7 +189,7 @@ export function CatalogEditorDialog({
           }
         : {
             name: name.trim(),
-            sizeItemId,
+          sizeItemId: comboSizes[0]?.itemId ?? "",
             priceCents,
             includedToppings: Number(includedToppings),
             includedFruits: Number(includedFruits),
@@ -192,10 +199,13 @@ export function CatalogEditorDialog({
             imageAlt,
             available,
             sortOrder: Number(sortOrder),
-            items: Object.entries(selectedItems).map(([itemId, quantity]) => ({
-              itemId,
-              quantity,
-            })),
+            items: [
+              ...comboSizes.map(({ itemId, quantity }) => ({ itemId, quantity })),
+              ...Object.entries(selectedItems).map(([itemId, quantity]) => ({
+                itemId,
+                quantity,
+              })),
+            ],
           };
 
     try {
@@ -229,6 +239,14 @@ export function CatalogEditorDialog({
       else delete next[itemId];
       return next;
     });
+  }
+
+  function updateSelectedSize(index: number, field: "itemId" | "quantity", value: string | number) {
+    setSelectedSizes((current) =>
+      current.map((portion, portionIndex) =>
+        portionIndex === index ? { ...portion, [field]: value } : portion,
+      ),
+    );
   }
 
   const title =
@@ -353,22 +371,6 @@ export function CatalogEditorDialog({
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">
-                Tamanho
-                <select
-                  required
-                  value={sizeItemId}
-                  onChange={(event) => setSizeItemId(event.target.value)}
-                  className={inputClassName}
-                >
-                  <option value="">Selecione um tamanho</option>
-                  {sizeItems.map((size) => (
-                    <option key={size.id} value={size.id}>
-                      {size.name}{!size.available || size.deletedAt ? " (inativo)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block space-y-1.5 text-sm font-bold">
                 Preço (R$)
                 <input
                   required
@@ -422,6 +424,68 @@ export function CatalogEditorDialog({
                 className={inputClassName}
               />
             </label>
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-black">Açaís incluídos no combo</legend>
+              <p className="text-xs leading-5 text-[#77776e]">
+                Adicione os tamanhos e quantidades. Cada porção será configurada separadamente no pedido.
+              </p>
+              <div className="space-y-3">
+                {selectedSizes.map((portion, index) => (
+                  <div key={`portion-${index}`} className="grid grid-cols-[minmax(0,1fr)_92px_40px] items-end gap-2">
+                    <label className="block space-y-1.5 text-xs font-bold">
+                      Tamanho {index + 1}
+                      <select
+                        required
+                        value={portion.itemId}
+                        onChange={(event) => updateSelectedSize(index, "itemId", event.target.value)}
+                        className={inputClassName}
+                      >
+                        <option value="">Selecione</option>
+                        {sizeItems.map((size) => (
+                          <option
+                            key={size.id}
+                            value={size.id}
+                            disabled={selectedSizes.some((other, otherIndex) => otherIndex !== index && other.itemId === size.id)}
+                          >
+                            {size.name}{!size.available || size.deletedAt ? " (inativo)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block space-y-1.5 text-xs font-bold">
+                      Quantidade
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={portion.quantity}
+                        onChange={(event) => updateSelectedSize(index, "quantity", Number(event.target.value))}
+                        className={inputClassName}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={selectedSizes.length === 1}
+                      onClick={() => setSelectedSizes((current) => current.filter((_, portionIndex) => portionIndex !== index))}
+                      aria-label={`Remover tamanho ${index + 1}`}
+                      title="Remover tamanho"
+                      className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-md text-[#8b1a2e] hover:bg-[#f8eeee] disabled:opacity-40"
+                    >
+                      <TrashIcon aria-hidden="true" size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSizes((current) => [...current, { itemId: "", quantity: 1 }])}
+                className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#8b1a2e] hover:underline"
+              >
+                <PlusIcon aria-hidden="true" size={17} />
+                Adicionar tamanho
+              </button>
+            </fieldset>
             <label className="block space-y-1.5 text-sm font-bold">
               URL da imagem
               <input

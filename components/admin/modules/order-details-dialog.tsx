@@ -108,7 +108,7 @@ function choiceName(
   id?: string,
 ) {
   if (!id) return "Não selecionado";
-  return choices.find((choice) => choice.id === id)?.name ?? id;
+  return choices.find((choice) => choice.id === id)?.name ?? "Item não encontrado no catálogo";
 }
 
 function choiceNames(
@@ -149,9 +149,21 @@ export function OrderDetailsDialog({
   const [status, setStatus] = useState(order.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [catalogItems, setCatalogItems] = useState<{ id: string; name: string }[]>([]);
+  const [catalogCombos, setCatalogCombos] = useState<{ id: string; name: string }[]>([]);
   const payload = asOrderPayload(order.orderData);
   const delivery = payload.delivery;
   const payment = payload.payment;
+  const choiceCatalog = [
+    ...catalogItems,
+    ...flavors,
+    ...cupSizes,
+    ...toppings,
+    ...sauces,
+    ...condimentPositions,
+    ...fruits,
+    ...extras,
+  ];
   const orderItems: OrderItemPayload[] =
     payload.items?.length
       ? payload.items
@@ -159,7 +171,10 @@ export function OrderDetailsDialog({
         ? [
             {
               id: order.id,
-              name: combos.find((combo) => combo.id === payload.acai?.comboId)?.name ?? "Açaí livre",
+              name:
+                catalogCombos.find((combo) => combo.id === payload.acai?.comboId)?.name ??
+                combos.find((combo) => combo.id === payload.acai?.comboId)?.name ??
+                "Açaí livre",
               estimatedSubtotalCents: order.estimatedTotalCents,
               acai: payload.acai,
             },
@@ -169,6 +184,31 @@ export function OrderDetailsDialog({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCatalog() {
+      try {
+        const response = await fetch("/admin/api/catalog", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const catalog = (await response.json()) as {
+          items?: { id: string; name: string }[];
+          combos?: { id: string; name: string }[];
+        };
+        setCatalogItems(catalog.items ?? []);
+        setCatalogCombos(catalog.combos ?? []);
+      } catch {
+        if (!controller.signal.aborted) setCatalogItems([]);
+      }
+    }
+
+    void loadCatalog();
+    return () => controller.abort();
   }, []);
 
   async function saveStatus(event: FormEvent<HTMLFormElement>) {
@@ -287,19 +327,19 @@ export function OrderDetailsDialog({
                     </ul>
                   )}
                   <dl className="grid gap-2 text-xs sm:grid-cols-2">
-                    <OrderField label="Sabor">{choiceName(flavors, item.acai.flavorId)}</OrderField>
-                    <OrderField label="Tamanho">{choiceName(cupSizes, item.acai.sizeId)}</OrderField>
+                    <OrderField label="Sabor">{choiceName(choiceCatalog, item.acai.flavorId)}</OrderField>
+                    <OrderField label="Tamanho">{choiceName(choiceCatalog, item.acai.sizeId)}</OrderField>
                     <OrderField label="Calda">
-                      {item.acai.sauceId === "none" ? "Sem calda" : choiceName(sauces, item.acai.sauceId)}
+                      {item.acai.sauceId === "none" ? "Sem calda" : choiceName(choiceCatalog, item.acai.sauceId)}
                     </OrderField>
                     <OrderField label="Posição dos condimentos">
-                      {choiceName(condimentPositions, item.acai.condimentPositionId)}
+                      {choiceName(choiceCatalog, item.acai.condimentPositionId)}
                     </OrderField>
                     <OrderField label="Acompanhamentos">
-                      {choiceNames(toppings, item.acai.toppingIds)}
+                      {choiceNames(choiceCatalog, item.acai.toppingIds)}
                     </OrderField>
-                    <OrderField label="Frutas">{choiceNames(fruits, item.acai.fruitIds)}</OrderField>
-                    <OrderField label="Extras">{choiceNames(extras, item.acai.extraIds)}</OrderField>
+                    <OrderField label="Frutas">{choiceNames(choiceCatalog, item.acai.fruitIds)}</OrderField>
+                    <OrderField label="Extras">{choiceNames(choiceCatalog, item.acai.extraIds)}</OrderField>
                   </dl>
                 </article>
               ))}

@@ -1,3 +1,5 @@
+import { ShoppingCartIcon } from "@phosphor-icons/react";
+
 const landingNavigation = [
   { label: "Início", href: "#inicio" },
   { label: "Cardápio", href: "#catalogo" },
@@ -5,7 +7,7 @@ const landingNavigation = [
   { label: "Nossa história", href: "#sobre" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ cartCount }: { cartCount: number }) {
   return (
     <header className="bg-dark z-10000 sticky top-0 shadow-[0_4px_16px_rgba(61,15,26,0.08)] backdrop-blur">
       <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 md:px-8">
@@ -32,12 +34,30 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <a
-          href="#monte-seu-acai"
-          className="rounded-full bg-petal px-5 py-2 text-sm font-bold text-dark transition-colors hover:bg-blush"
-        >
-          Fazer pedido
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href="#order-summary"
+            aria-label={`Sacola com ${cartCount} ${cartCount === 1 ? "item" : "itens"}`}
+            title="Abrir sacola"
+            className="relative flex h-10 min-w-10 items-center justify-center gap-1 rounded-md text-cream transition-colors hover:text-blush"
+          >
+            <ShoppingCartIcon aria-hidden="true" size={20} />
+            <span className="text-xs font-extrabold">{cartCount}</span>
+            <span className="sr-only sm:not-sr-only sm:text-xs sm:font-bold">Sacola</span>
+          </a>
+          <a
+            href="/admin"
+            className="text-xs font-extrabold text-cream transition-colors hover:text-blush sm:text-sm"
+          >
+            Painel
+          </a>
+          <a
+            href="#monte-seu-acai"
+            className="rounded-full bg-petal px-4 py-2 text-xs font-bold text-dark transition-colors hover:bg-blush sm:px-5 sm:text-sm"
+          >
+            Fazer pedido
+          </a>
+        </div>
       </div>
     </header>
   );

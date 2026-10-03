@@ -44,26 +44,27 @@ npm run build
 
 ## Estrutura principal
 
-- `app/page.tsx`: compõe a landing e controla o slide da hero e o combo selecionado.
+- `app/page.tsx`: compõe a loja, carrega o catálogo e controla hero, combo/tamanho selecionado e contador da sacola.
 - `app/admin/page.tsx`: login protegido e módulos administrativos de dashboard, pedidos, catálogo e cupons.
 - `app/admin/actions.ts`: ações de login e logout no servidor.
 - `app/admin/api/[...path]/route.ts`: proxy server-side que verifica a sessão e encaminha métodos administrativos permitidos com `ADMIN_API_KEY`.
 - `components/admin/modules/dashboard-module.tsx`: métricas do dia, gráfico por etapa, pedidos recentes, polling e alerta sonoro opcional para novos pedidos.
 - `components/admin/modules/orders-module.tsx` e `order-details-dialog.tsx`: lista paginada, filtro, detalhes e alteração de etapas dos pedidos.
-- `components/admin/modules/catalog-module.tsx` e `catalog-editor-dialog.tsx`: CRUD administrativo de itens e combos, pausa/reativação e arquivamento.
+- `components/admin/modules/catalog-module.tsx` e `catalog-editor-dialog.tsx`: CRUD administrativo de itens e combos, pausa/reativação, arquivamento e porções de tamanhos mistos.
+- `components/admin/modules/order-details-dialog.tsx`: detalhes e tradução dos IDs de itens usando o catálogo Admin atual.
 - `app/layout.tsx`: layout raiz, metadados, idioma e fontes Next.
 - `app/globals.css`: paleta, tokens Tailwind e estilos globais.
 - `components/menu/menu-data.tsx`: tipos e imagens ilustrativas; itens e combos comerciais são carregados do backend.
 - `components/menu/product-hero.tsx`: carrossel de quatro campanhas; duas levam à montagem livre e duas ao catálogo.
-- `components/menu/product-catalog.tsx`: destaques de açaí livre e combos e expansão do catálogo completo.
+- `components/menu/product-catalog.tsx`: vitrine ecommerce com busca, categoria, promoção, faixa de preço, ordenação e cards de tamanhos/combos.
 - `components/menu/acai-builder.tsx`: configuração de açaís, carrinho em memória, cálculo do pedido, checkout e envio de uma solicitação multi-item à API/WhatsApp.
 - `components/menu/acai-builder-data.ts`: tipos de opções do configurador e regras convertidas do catálogo público.
 - `components/menu/choice-checklist.tsx`: checklist reutilizável de escolhas múltiplas.
-- `components/menu/order-summary.tsx`: resumo, total e barra móvel flutuante.
+- `components/menu/order-summary.tsx`: linhas removíveis da sacola, total, progresso das porções do combo e barra móvel flutuante.
 - `components/menu/combo-limit-dialog.tsx`: confirmação ao ultrapassar inclusão de combo.
 - `components/menu/delivery-checkout-form.tsx`: dados de contato/entrega, pagamento, troco e observações.
 - `components/menu/brand-footer.tsx`: rodapé da landing.
-- `components/menu/site-header.tsx`: cabeçalho da landing.
+- `components/menu/site-header.tsx`: cabeçalho, acesso ao Painel Admin e atalho/contador da sacola.
 - `components/menu/mobile-navigation.tsx`: navegação móvel antiga, ainda disponível para uma futura experiência logada; não é renderizada pela landing atual.
 - `components/ui/`: componentes UI gerados/usados pelo projeto.
 - `lib/utils.ts`: utilitários compartilhados, incluindo `cn`.
@@ -73,7 +74,7 @@ npm run build
 
 Para regras de negócio, fluxo de compra, convenções visuais, pendências e integração futura com API/Admin, consulte [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
 
-O carrinho atual reúne até 20 configurações de açaí em um único pedido. Complementos do catálogo são selecionados dentro do montador; ainda não há compra avulsa de cada sabor, fruta ou acompanhamento como linha independente.
+O carrinho reúne até 100 configurações de açaí por pedido. Combos podem agrupar vários tamanhos; cada copo é configurado individualmente e aparece como uma linha própria da sacola. Complementos continuam sendo escolhas dentro do açaí, não produtos avulsos.
 
 ## Observações
 

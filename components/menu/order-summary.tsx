@@ -18,6 +18,8 @@ export type CartSummaryItem = {
 
 type OrderSummaryProps = {
   selectedCombo: MenuCombo | null;
+  comboServingNumber: number;
+  comboServingCount: number;
   cartItems: CartSummaryItem[];
   cartSubtotal: number;
   hasCurrentConfiguration: boolean;
@@ -45,6 +47,8 @@ type OrderSummaryProps = {
 
 export function OrderSummary({
   selectedCombo,
+  comboServingNumber,
+  comboServingCount,
   cartItems,
   cartSubtotal,
   hasCurrentConfiguration,
@@ -106,13 +110,13 @@ export function OrderSummary({
         className="h-fit bg-dark p-5 text-white sm:p-6 lg:sticky lg:top-24"
       >
         <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blush">
-          {selectedCombo
-            ? selectedCombo.name
-            : cartItems.length > 0
-              ? `Carrinho · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-              : "Açaí livre"}
+          {cartItems.length > 0
+            ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
+            : selectedCombo?.name ?? "Açaí livre"}
         </p>
-        <h3 className="mt-2 text-2xl font-black">Do jeitinho que você gosta</h3>
+        <h3 className="mt-2 text-2xl font-black">
+          {cartItems.length > 0 ? "Seu pedido" : "Do jeitinho que você gosta"}
+        </h3>
         {cartItems.length > 0 && (
           <section aria-label="Itens do carrinho" className="mt-5 border-b border-white/20 pb-5">
             <ul className="space-y-3">
@@ -226,7 +230,9 @@ export function OrderSummary({
               disabled={!canAddToCart}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-blush px-4 text-sm font-extrabold text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Adicionar ao carrinho
+              {selectedCombo && comboServingCount > 1
+                ? `Adicionar porção ${comboServingNumber} de ${comboServingCount}`
+                : "Adicionar ao carrinho"}
             </button>
             {cartItems.length > 0 && currentHasSelections && (
               <button
@@ -243,7 +249,11 @@ export function OrderSummary({
               disabled={cartItems.length === 0 && !canAddToCart}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {cartItems.length > 0 ? "Continuar para entrega" : "Adicionar e continuar"}
+              {selectedCombo && comboServingNumber < comboServingCount
+                ? "Adicionar e configurar próxima porção"
+                : cartItems.length > 0
+                  ? "Continuar para entrega"
+                  : "Adicionar e continuar"}
               <ArrowRightIcon aria-hidden="true" size={17} />
             </button>
           </div>
@@ -267,11 +277,9 @@ export function OrderSummary({
               Valor atual · ver detalhes
             </span>
             <span className="block truncate text-sm font-bold">
-              {selectedCombo
-                ? selectedCombo.name
-                : cartItems.length > 0
-                  ? `Carrinho · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-                  : "Açaí livre"}
+              {cartItems.length > 0
+                ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
+                : selectedCombo?.name ?? "Açaí livre"}
             </span>
           </span>
           <output
