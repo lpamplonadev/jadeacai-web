@@ -15,7 +15,7 @@ The frontend also has a protected Admin for dashboard metrics, order search/deta
 
 Requirements: Node.js and npm. The workspace has been used with Node 24.
 
-Configure `NEXT_PUBLIC_API_URL` with the backend base URL, plus `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `ADMIN_API_KEY` in `.env.local`. The same `ADMIN_API_KEY` must be configured privately on the backend. Production frontend variables belong in Vercel; backend secrets and `DATABASE_URL` belong in the API host. Never expose the admin key with a `NEXT_PUBLIC_` prefix.
+Configure `NEXT_PUBLIC_API_URL` with the backend base URL, plus `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, `ADMIN_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. The same `ADMIN_API_KEY` must be configured privately on the backend. Production frontend variables belong in Vercel; backend secrets and `DATABASE_URL` belong in the API host. The Supabase service-role key is used only by the authenticated Next.js image-upload route and must never be exposed with a `NEXT_PUBLIC_` prefix.
 
 ```bash
 npm install
@@ -68,6 +68,7 @@ The hero and catalog are the landing experience. Header/catalog buttons use in-p
 - `lib/jade-api.ts`: public catalog/order API client and conversion from API catalog records to builder data.
 - `lib/admin-auth.ts`: credential validation and signed Admin session.
 - `app/admin/api/[...path]/route.ts`: authenticated server-side proxy for Admin API requests.
+- `app/admin/api/catalog/images/route.ts`: Admin-session-protected JPEG/PNG/WebP upload to Supabase Storage; returns the public catalog image URL.
 - `components/admin/modules/`: dashboard, order management, and catalog CRUD modules.
 - `components/admin/modules/catalog-editor-dialog.tsx`: combo editor with multiple size portions and per-size quantities.
 - `components/admin/modules/order-details-dialog.tsx`: resolves order item IDs against current Admin catalog names.

@@ -26,11 +26,15 @@ ADMIN_USERNAME=seu-usuario-administrativo
 ADMIN_PASSWORD=sua-senha-forte
 ADMIN_SESSION_SECRET=chave-aleatoria-com-pelo-menos-32-caracteres
 ADMIN_API_KEY=mesma-chave-privada-configurada-no-backend
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=chave-service-role-do-projeto
 ```
 
 Gere uma chave de sessão com `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Use pelo menos 32 caracteres para `ADMIN_API_KEY`; não aplique o prefixo `NEXT_PUBLIC_` a credenciais, nem compartilhe ou versione esses valores. Depois de alterar as variáveis de produção, faça novo deploy do frontend.
 
-O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. As chamadas administrativas passam por `/admin/api/...`: o Route Handler verifica a sessão e encaminha as chamadas ao backend com `ADMIN_API_KEY`. Configure `NEXT_PUBLIC_API_URL` e as variáveis de sessão no projeto Vercel; configure a mesma `ADMIN_API_KEY` privada também no backend. Nunca use `NEXT_PUBLIC_ADMIN_API_KEY` nem envie a chave ao navegador.
+O login valida as credenciais no servidor Next.js e cria um cookie assinado, `HttpOnly`, com validade de oito horas. As chamadas administrativas passam por `/admin/api/...`: o Route Handler verifica a sessão e encaminha as chamadas ao backend com `ADMIN_API_KEY`. Configure `NEXT_PUBLIC_API_URL` e as variáveis de sessão no projeto Vercel; configure a mesma `ADMIN_API_KEY` privada também no backend. `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são usados somente pela rota server-side de upload de imagens. Nunca use prefixo `NEXT_PUBLIC_` nessas chaves nem as envie ao navegador.
+
+Para habilitar upload de fotos dos combos, aplique as migrations do backend para criar o bucket público `catalog-images`. No Admin, selecione arquivos JPEG, PNG ou WebP de até 5 MB; o upload retorna a URL que é salva no campo de imagem do combo. Configure as duas variáveis Supabase acima localmente e no Vercel antes de usar o upload.
 
 O backend fica no repositório [lpamplonadev/jadeacai-api](https://github.com/lpamplonadev/jadeacai-api). A loja usa `GET /api/v1/menu/catalog` e `POST /api/v1/orders`; o Admin usa endpoints protegidos de dashboard, pedidos e catálogo. Os contratos e os limites atuais estão detalhados em [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
 

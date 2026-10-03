@@ -1,7 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 export type CatalogItemKind =
   | "flavor"
@@ -147,12 +154,51 @@ export function CatalogEditorDialog({
     ),
   );
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
+
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.set("file", file);
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      const response = await fetch("/admin/api/catalog/images", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json().catch(() => null)) as {
+        imageUrl?: string;
+        error?: string;
+      } | null;
+      if (!response.ok || !result?.imageUrl) {
+        throw new Error(result?.error ?? "Não foi possível enviar a imagem.");
+      }
+      setImageUrl(result.imageUrl);
+      if (!imageAlt.trim()) {
+        setImageAlt(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+      }
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Não foi possível enviar a imagem.",
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -495,6 +541,38 @@ export function CatalogEditorDialog({
                 className={inputClassName}
               />
             </label>
+            <div className="space-y-3">
+              <label className="block space-y-1.5 text-sm font-bold">
+                Enviar imagem do dispositivo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingImage || saving}
+                  onChange={(event) => void uploadImage(event)}
+                  className={`${inputClassName} file:mr-3 file:rounded file:border-0 file:bg-[#f8eeee] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#8b1a2e]`}
+                />
+              </label>
+              <p className="text-xs text-[#68685f]">
+                JPEG, PNG ou WebP · até 5 MB.
+              </p>
+              {uploadingImage && (
+                <p role="status" className="text-sm font-semibold text-[#8b1a2e]">
+                  Enviando imagem...
+                </p>
+              )}
+              {imageUrl && (
+                <div className="relative h-40 w-full overflow-hidden rounded-md border border-[#deded7] bg-[#f3f3ef]">
+                  <Image
+                    src={imageUrl}
+                    alt={imageAlt || name || "Prévia da imagem do combo"}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 100vw, 700px"
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
             <label className="block space-y-1.5 text-sm font-bold">
               Texto alternativo da imagem
               <input
@@ -615,7 +693,7 @@ export function CatalogEditorDialog({
           </button>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || uploadingImage}
             className="min-h-11 rounded-md bg-[#8b1a2e] px-5 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-60"
           >
             {saving ? "Salvando..." : "Salvar"}
