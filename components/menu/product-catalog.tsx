@@ -97,9 +97,12 @@ export function ProductCatalog({
     if (promotionsOnly && product.type !== "combo") return false;
     if (lowerPrice !== null && product.price < lowerPrice) return false;
     if (upperPrice !== null && product.price > upperPrice) return false;
-    return !query || `${product.name} ${product.description} ${product.tag}`
-      .toLocaleLowerCase("pt-BR")
-      .includes(query);
+    return (
+      !query ||
+      `${product.name} ${product.description} ${product.tag}`
+        .toLocaleLowerCase("pt-BR")
+        .includes(query)
+    );
   });
 
   const sortedProducts = [...filteredProducts].sort((left, right) => {
@@ -115,7 +118,7 @@ export function ProductCatalog({
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-blush/80 pb-6">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-coral">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-crimson">
             Cardápio Jade
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight text-crimson sm:text-4xl">
@@ -140,11 +143,13 @@ export function ProductCatalog({
               Categorias
             </legend>
             <div className="space-y-2">
-              {([
-                ["all", "Todos os produtos"],
-                ["free", "Açaí livre"],
-                ["combo", "Combos"],
-              ] as const).map(([value, label]) => (
+              {(
+                [
+                  ["all", "Todos os produtos"],
+                  ["free", "Açaí livre"],
+                  ["combo", "Combos"],
+                ] as const
+              ).map(([value, label]) => (
                 <label
                   key={value}
                   className="flex min-h-9 cursor-pointer items-center gap-2 text-sm text-text"
@@ -168,7 +173,7 @@ export function ProductCatalog({
               Faixa de preço
             </legend>
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1 text-xs font-semibold text-muted">
+              <label className="space-y-1 text-xs font-semibold text-crimson">
                 Mínimo
                 <input
                   aria-label="Preço mínimo"
@@ -181,7 +186,7 @@ export function ProductCatalog({
                   className={filterInputClassName}
                 />
               </label>
-              <label className="space-y-1 text-xs font-semibold text-muted">
+              <label className="space-y-1 text-xs font-semibold text-crimson">
                 Máximo
                 <input
                   aria-label="Preço máximo"
@@ -214,26 +219,29 @@ export function ProductCatalog({
             <MagnifyingGlassIcon
               aria-hidden="true"
               size={19}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-crimson"
             />
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por tamanho ou combo"
-              className="min-h-12 w-full rounded-md border border-blush bg-white pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted focus:border-crimson"
+              className="min-h-12 w-full rounded-md border border-blush bg-white pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted-foreground focus:border-crimson"
             />
           </label>
 
           <div className="flex flex-wrap items-center justify-between gap-3 py-5">
-            <p aria-live="polite" className="text-sm text-muted">
-              {sortedProducts.length} {sortedProducts.length === 1 ? "produto" : "produtos"}
+            <p aria-live="polite" className="text-sm text-crimson">
+              {sortedProducts.length}{" "}
+              {sortedProducts.length === 1 ? "produto" : "produtos"}
             </p>
-            <label className="flex items-center gap-2 text-xs font-semibold text-muted">
+            <label className="flex items-center gap-2 text-xs font-semibold text-crimson">
               Ordenar por
               <select
                 value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value as SortOrder)}
+                onChange={(event) =>
+                  setSortOrder(event.target.value as SortOrder)
+                }
                 className="min-h-10 rounded-md border border-blush bg-white px-3 text-sm text-text outline-none focus:border-crimson"
               >
                 <option value="featured">Relevância</option>
@@ -265,7 +273,7 @@ export function ProductCatalog({
                     </span>
                   </div>
                   <div className="p-4">
-                    <p className="text-[11px] font-extrabold uppercase text-coral">
+                    <p className="text-[11px] font-extrabold uppercase text-crimson">
                       {product.type === "free" ? "Açaí livre" : "Combo"}
                     </p>
                     <h3 className="mt-1 min-h-12 font-bold text-text">
@@ -292,7 +300,7 @@ export function ProductCatalog({
               ))}
             </div>
           ) : (
-            <p className="border-y border-blush/70 py-16 text-center text-sm text-muted">
+            <p className="border-y border-blush/70 py-16 text-center text-sm text-muted-foreground">
               Nenhum produto encontrado com esses filtros.
             </p>
           )}
