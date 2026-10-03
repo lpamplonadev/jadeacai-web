@@ -2,13 +2,7 @@
 
 import Image from "next/image";
 import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export type CatalogItemKind =
   | "flavor"
@@ -98,6 +92,7 @@ export function CatalogEditorDialog({
   onSaved,
 }: CatalogEditorDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const item = editor.type === "item" ? editor.item : undefined;
   const combo = editor.type === "combo" ? editor.combo : undefined;
   const linkedItemIDs = new Set(
@@ -146,6 +141,10 @@ export function CatalogEditorDialog({
   const [tag, setTag] = useState(combo?.tag ?? "");
   const [imageUrl, setImageUrl] = useState(combo?.imageUrl ?? "");
   const [imageAlt, setImageAlt] = useState(combo?.imageAlt ?? "");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImageName, setSelectedImageName] = useState("");
+  const [localImagePreview, setLocalImagePreview] = useState("");
+  const [imageUploadError, setImageUploadError] = useState("");
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
     Object.fromEntries(
       (combo?.items ?? [])
@@ -162,16 +161,20 @@ export function CatalogEditorDialog({
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
-  async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    input.value = "";
-    if (!file) return;
+  useEffect(() => {
+    if (!localImagePreview) return;
+    return () => URL.revokeObjectURL(localImagePreview);
+  }, [localImagePreview]);
+
+  async function uploadImage(file: File) {
+    setSelectedImageFile(file);
+    setSelectedImageName(file.name);
+    setLocalImagePreview(URL.createObjectURL(file));
+    setImageUploadError("");
 
     const formData = new FormData();
     formData.set("file", file);
     setUploadingImage(true);
-    setError("");
 
     try {
       const response = await fetch("/admin/api/catalog/images", {
@@ -186,11 +189,14 @@ export function CatalogEditorDialog({
         throw new Error(result?.error ?? "Não foi possível enviar a imagem.");
       }
       setImageUrl(result.imageUrl);
+      setSelectedImageFile(null);
+      setLocalImagePreview("");
+      if (imageInputRef.current) imageInputRef.current.value = "";
       if (!imageAlt.trim()) {
         setImageAlt(file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
       }
     } catch (uploadError) {
-      setError(
+      setImageUploadError(
         uploadError instanceof Error
           ? uploadError.message
           : "Não foi possível enviar a imagem.",
@@ -198,6 +204,14 @@ export function CatalogEditorDialog({
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  function cancelImageUpload() {
+    setSelectedImageFile(null);
+    setSelectedImageName("");
+    setLocalImagePreview("");
+    setImageUploadError("");
+    if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -235,7 +249,7 @@ export function CatalogEditorDialog({
           }
         : {
             name: name.trim(),
-          sizeItemId: comboSizes[0]?.itemId ?? "",
+            sizeItemId: comboSizes[0]?.itemId ?? "",
             priceCents,
             includedToppings: Number(includedToppings),
             includedFruits: Number(includedFruits),
@@ -545,25 +559,56 @@ export function CatalogEditorDialog({
               <label className="block space-y-1.5 text-sm font-bold">
                 Enviar imagem do dispositivo
                 <input
+                  ref={imageInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   disabled={uploadingImage || saving}
-                  onChange={(event) => void uploadImage(event)}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void uploadImage(file);
+                  }}
                   className={`${inputClassName} file:mr-3 file:rounded file:border-0 file:bg-[#f8eeee] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#8b1a2e]`}
                 />
               </label>
               <p className="text-xs text-[#68685f]">
                 JPEG, PNG ou WebP · até 5 MB.
               </p>
-              {uploadingImage && (
+              {selectedImageName && (
                 <p role="status" className="text-sm font-semibold text-[#8b1a2e]">
-                  Enviando imagem...
+                  {uploadingImage
+                    ? `Enviando ${selectedImageName}...`
+                    : selectedImageFile
+                      ? `Selecionada: ${selectedImageName}`
+                      : `Imagem enviada: ${selectedImageName}`}
                 </p>
               )}
-              {imageUrl && (
+              {imageUploadError && (
+                <p role="alert" className="text-sm font-semibold text-red-800">
+                  {imageUploadError}
+                </p>
+              )}
+              {selectedImageFile && !uploadingImage && (
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void uploadImage(selectedImageFile)}
+                    className="min-h-9 text-sm font-bold text-[#8b1a2e] underline underline-offset-2"
+                  >
+                    Tentar upload novamente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelImageUpload}
+                    className="min-h-9 text-sm font-semibold text-[#55554e] underline underline-offset-2"
+                  >
+                    Cancelar arquivo
+                  </button>
+                </div>
+              )}
+              {(localImagePreview || imageUrl) && (
                 <div className="relative h-40 w-full overflow-hidden rounded-md border border-[#deded7] bg-[#f3f3ef]">
                   <Image
-                    src={imageUrl}
+                    src={localImagePreview || imageUrl}
                     alt={imageAlt || name || "Prévia da imagem do combo"}
                     fill
                     unoptimized
@@ -693,7 +738,7 @@ export function CatalogEditorDialog({
           </button>
           <button
             type="submit"
-            disabled={saving || uploadingImage}
+            disabled={saving || uploadingImage || selectedImageFile !== null}
             className="min-h-11 rounded-md bg-[#8b1a2e] px-5 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-60"
           >
             {saving ? "Salvando..." : "Salvar"}

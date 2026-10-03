@@ -39,41 +39,44 @@ async function hasValidImageSignature(file: File, mimeType: string) {
 
 export async function POST(request: Request) {
   if (!(await hasValidAdminSession())) {
-    return jsonError("admin session required", 401);
+    return jsonError("Entre novamente no painel para enviar imagens.", 401);
   }
 
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) {
-    return jsonError("catalog image storage is not configured", 503);
+    return jsonError(
+      "Upload não configurado: confira SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY na Vercel e publique um novo deploy.",
+      503,
+    );
   }
 
   const contentLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(contentLength) && contentLength > maxImageSizeBytes + 64 * 1024) {
-    return jsonError("image exceeds the 5 MB limit", 413);
+    return jsonError("A imagem excede o limite de 5 MB.", 413);
   }
 
   let formData: FormData;
   try {
     formData = await request.formData();
   } catch {
-    return jsonError("invalid image upload", 400);
+    return jsonError("Não foi possível ler o arquivo enviado.", 400);
   }
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return jsonError("select an image to upload", 400);
+    return jsonError("Selecione uma imagem para enviar.", 400);
   }
 
   const extension = imageExtensions[file.type];
   if (!extension) {
-    return jsonError("use a JPEG, PNG, or WebP image", 415);
+    return jsonError("Use uma imagem JPEG, PNG ou WebP.", 415);
   }
   if (file.size > maxImageSizeBytes) {
-    return jsonError("image exceeds the 5 MB limit", 413);
+    return jsonError("A imagem excede o limite de 5 MB.", 413);
   }
   if (!(await hasValidImageSignature(file, file.type))) {
-    return jsonError("file content does not match a supported image", 415);
+    return jsonError("O conteúdo do arquivo não corresponde a uma imagem válida.", 415);
   }
 
   const objectName = `${randomUUID()}.${extension}`;
@@ -97,10 +100,13 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      return jsonError("could not upload image to Supabase Storage", 502);
+      return jsonError(
+        "O Supabase recusou o upload. Confirme se o bucket catalog-images foi criado pela migration.",
+        502,
+      );
     }
   } catch {
-    return jsonError("Supabase Storage is unavailable", 502);
+    return jsonError("Não foi possível conectar ao Supabase Storage.", 502);
   }
 
   const imageUrl = new URL(
