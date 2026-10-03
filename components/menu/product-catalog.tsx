@@ -284,7 +284,7 @@ export function ProductCatalog({
                         className="z-10 object-contain"
                       />
                     )}
-                    <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
+                    <span className="absolute left-3 top-3 z-20 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
                       {product.tag}
                     </span>
                   </div>
