@@ -197,7 +197,18 @@ export function ProductHero({
         </div>
 
         <div className="relative order-1 mx-auto h-[270px] w-full max-w-xl md:order-2 md:h-[430px]">
-          <div className="absolute inset-0 overflow-hidden rounded-md bg-blush">
+          <div className="absolute inset-0 overflow-hidden rounded-md bg-petal">
+            <Image
+              key={`${promotion.image}-backdrop`}
+              src={promotion.image}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              loading="eager"
+              className="scale-110 object-cover opacity-40 blur-2xl"
+            />
+            <div className="absolute inset-0 bg-cream/20" />
             <Image
               key={promotion.image}
               src={promotion.image}
@@ -205,11 +216,11 @@ export function ProductHero({
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               loading="eager"
-              className="h-full w-full object-cover transition-opacity duration-300"
+              className="z-10 object-contain p-2 transition-opacity duration-300 sm:p-4"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-dark/25 via-transparent to-transparent" />
+            <div className="absolute inset-0 z-10 bg-gradient-to-t from-dark/20 via-transparent to-transparent" />
           </div>
-          <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-md bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-6">
+          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 rounded-md bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-6">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-petal text-crimson">
               <CheckIcon aria-hidden="true" size={20} weight="bold" />
             </span>
@@ -220,7 +231,7 @@ export function ProductHero({
               </span>
             </span>
           </div>
-          <span className="absolute right-4 top-4 rounded-full bg-coral px-3 py-1.5 text-xs font-bold text-white sm:right-6 sm:top-6">
+          <span className="absolute right-4 top-4 z-20 rounded-full bg-coral px-3 py-1.5 text-xs font-bold text-white sm:right-6 sm:top-6">
             {promotion.imageBadge}
           </span>
         </div>
