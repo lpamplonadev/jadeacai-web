@@ -1,6 +1,10 @@
 import Image from "next/image";
-import { useState } from "react";
-import { ArrowRightIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRightIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import type { BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
 import type { MenuCombo, Product } from "@/features/storefront/domain/menu-types";
 
@@ -16,6 +20,21 @@ type ProductCatalogProps = {
 
 type ProductCategory = "all" | "free" | "combo";
 type SortOrder = "featured" | "price-asc" | "price-desc";
+
+type CatalogProduct = {
+  id: string;
+  type: "free" | "combo";
+  name: string;
+  description: string;
+  details: string;
+  highlights: string[];
+  price: number;
+  tag: string;
+  image: string;
+  imageAlt: string;
+  rank: number;
+  choose: () => void;
+};
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -40,6 +59,15 @@ export function ProductCatalog({
   const [maxPrice, setMaxPrice] = useState("");
   const [promotionsOnly, setPromotionsOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>("featured");
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const detailsDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = detailsDialogRef.current;
+    if (!dialog) return;
+    if (selectedProduct && !dialog.open) dialog.showModal();
+    if (!selectedProduct && dialog.open) dialog.close();
+  }, [selectedProduct]);
 
   const apiStatusText = {
     checking: "Conectando à API",
@@ -55,7 +83,14 @@ export function ProductCatalog({
             id: `free-${size.id}`,
             type: "free" as const,
             name: `Açaí livre · ${size.name}`,
-            description: `Monte com ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} fruta(s) incluídos.`,
+            description: `Monte com ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}.`,
+            details: `Um açaí do seu jeito, do primeiro ao último detalhe. Escolha o sabor, combine seus acompanhamentos favoritos e finalize com frutas. Este tamanho inclui ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta" : "frutas"}; adicionais e valores aparecem no configurador.`,
+            highlights: [
+              `Tamanho ${size.name}`,
+              `${catalog.includedToppings} ${catalog.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
+              `${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`,
+              "Sabor e complementos escolhidos por você",
+            ],
             price: size.price,
             tag: "Monte do seu jeito",
             image: image?.image ?? "",
@@ -73,12 +108,28 @@ export function ProductCatalog({
               .filter((item) => item.kind === "size")
               .map((item) => `${item.quantity} × ${item.name}`)
               .join(" + "),
-            `${combo.includedToppings} acompanhamentos`,
-            `${combo.includedFruits} frutas`,
-            `${combo.includedExtras} extras incluídos`,
+            `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
+            ...(combo.includedFruits > 0
+              ? [`${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`]
+              : []),
+            ...(combo.includedExtras > 0
+              ? [`${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`]
+              : []),
           ]
             .filter(Boolean)
             .join(" · "),
+          details: `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
+          highlights: [
+            ...(combo.items ?? [])
+              .map((item) => `${item.quantity} × ${item.name}`),
+            `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
+            combo.includedFruits > 0
+              ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
+              : "Frutas disponíveis para personalizar",
+            combo.includedExtras > 0
+              ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
+              : "Extras disponíveis para personalizar",
+          ],
           price: combo.priceCents / 100,
           tag: combo.tag || "Combo",
           image: combo.image,
@@ -88,6 +139,13 @@ export function ProductCatalog({
         })),
       ]
     : [];
+
+  function customizeSelectedProduct() {
+    if (!selectedProduct) return;
+    const choose = selectedProduct.choose;
+    setSelectedProduct(null);
+    choose();
+  }
 
   const query = search.trim().toLocaleLowerCase("pt-BR");
   const lowerPrice = minPrice === "" ? null : Number(minPrice);
@@ -258,60 +316,61 @@ export function ProductCatalog({
                   key={product.id}
                   className="group overflow-hidden rounded-md border border-blush/70 bg-white"
                 >
-                  <div className="relative h-48 overflow-hidden bg-petal">
-                    {product.image && (
-                      <>
-                        <Image
-                          src={product.image}
-                          alt=""
-                          aria-hidden="true"
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="scale-110 object-cover opacity-60 blur-xl"
-                        />
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 bg-cream/25"
-                        />
-                      </>
-                    )}
-                    {product.image && (
-                      <Image
-                        src={product.image}
-                        alt={product.imageAlt}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="z-10 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                      />
-                    )}
-                    <span className="absolute left-3 top-3 z-20 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
-                      {product.tag}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-[11px] font-extrabold uppercase text-crimson">
-                      {product.type === "free" ? "Açaí livre" : "Combo"}
-                    </p>
-                    <h3 className="mt-1 min-h-12 font-bold text-text">
-                      {product.name}
-                    </h3>
-                    <p className="min-h-10 text-sm leading-5 text-crimson/75">
-                      {product.description}
-                    </p>
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-petal pt-3">
-                      <span className="text-lg font-extrabold text-crimson">
-                        {currency.format(product.price)}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProduct(product)}
+                    aria-label={`Ver detalhes de ${product.name}`}
+                    className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-crimson"
+                  >
+                    <div className="relative h-48 overflow-hidden bg-petal">
+                      {product.image && (
+                        <>
+                          <Image
+                            src={product.image}
+                            alt=""
+                            aria-hidden="true"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="scale-110 object-cover opacity-60 blur-xl"
+                          />
+                          <div
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-cream/25"
+                          />
+                          <Image
+                            src={product.image}
+                            alt={product.imageAlt}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="z-10 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                          />
+                        </>
+                      )}
+                      <span className="absolute left-3 top-3 z-20 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
+                        {product.tag}
                       </span>
-                      <button
-                        type="button"
-                        onClick={product.choose}
-                        className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-crimson px-3 text-xs font-bold text-white transition-colors hover:bg-dark"
-                      >
-                        {product.type === "free" ? "Montar" : "Personalizar"}
-                        <ArrowRightIcon aria-hidden="true" size={15} />
-                      </button>
                     </div>
-                  </div>
+                    <div className="p-4">
+                      <p className="text-[11px] font-extrabold uppercase text-crimson">
+                        {product.type === "free" ? "Açaí livre" : "Combo"}
+                      </p>
+                      <h3 className="mt-1 min-h-12 font-bold text-text">
+                        {product.name}
+                      </h3>
+                      <p className="min-h-10 text-sm leading-5 text-crimson/75">
+                        {product.description}
+                      </p>
+                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-petal pt-3">
+                        <span className="text-lg font-extrabold text-crimson">
+                          {currency.format(product.price)}
+                        </span>
+                        <span className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-crimson px-3 text-xs font-bold text-white transition-colors group-hover:bg-dark">
+                          Ver detalhes
+                          <ArrowRightIcon aria-hidden="true" size={15} />
+                        </span>
+                      </div>
+                    </div>
+                  </button>
                 </article>
               ))}
             </div>
@@ -320,6 +379,89 @@ export function ProductCatalog({
               Nenhum produto encontrado com esses filtros.
             </p>
           )}
+
+          <dialog
+            ref={detailsDialogRef}
+            aria-labelledby="catalog-product-title"
+            onCancel={(event) => {
+              event.preventDefault();
+              setSelectedProduct(null);
+            }}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setSelectedProduct(null);
+              }
+            }}
+            className="m-auto max-h-[90dvh] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto rounded-md border border-blush bg-cream p-0 text-text shadow-2xl backdrop:bg-text/60"
+          >
+            {selectedProduct && (
+              <div className="grid md:grid-cols-2">
+                <div className="relative min-h-64 bg-petal md:min-h-[30rem]">
+                  {selectedProduct.image && (
+                    <Image
+                      src={selectedProduct.image}
+                      alt={selectedProduct.imageAlt}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-contain p-5"
+                    />
+                  )}
+                </div>
+                <div className="p-5 sm:p-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="text-xs font-extrabold uppercase text-crimson">
+                      {selectedProduct.type === "free" ? "Açaí livre" : selectedProduct.tag || "Combo"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProduct(null)}
+                      aria-label="Fechar detalhes do produto"
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-md border border-blush text-crimson transition-colors hover:bg-petal"
+                    >
+                      <XIcon aria-hidden="true" size={19} />
+                    </button>
+                  </div>
+                  <h2
+                    id="catalog-product-title"
+                    className="mt-3 text-2xl font-black text-crimson sm:text-3xl"
+                  >
+                    {selectedProduct.name}
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-text/80">
+                    {selectedProduct.details}
+                  </p>
+                  <ul className="mt-5 space-y-2 border-y border-blush/80 py-4 text-sm text-crimson">
+                    {selectedProduct.highlights.map((highlight) => (
+                      <li key={highlight} className="flex gap-2">
+                        <span aria-hidden="true" className="font-black text-coral">•</span>
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-5 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-crimson/75">
+                        Valor
+                      </p>
+                      <p className="text-2xl font-black text-crimson">
+                        {currency.format(selectedProduct.price)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={customizeSelectedProduct}
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark"
+                    >
+                      {selectedProduct.type === "free"
+                        ? "Montar meu açaí"
+                        : "Personalizar combo"}
+                      <ArrowRightIcon aria-hidden="true" size={17} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </dialog>
         </div>
       </div>
     </section>

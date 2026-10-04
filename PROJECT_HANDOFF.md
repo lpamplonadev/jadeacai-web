@@ -95,7 +95,7 @@ The hero builds four promotions in `product-hero.tsx`:
 - The dots and arrows change the active slide. `app/page.tsx` currently uses `heroSlideCount = 4`; update that value or derive it from shared promotions if the count changes.
 - Product images used by the hero come from `products`; combo cards and combo hero slides use `combos`.
 
-The catalog displays active free sizes and combos with search, category and price filters, a promotion filter, and sorting. Flavors/toppings/etc. remain builder choices rather than standalone purchasable products. “Montar” selects a free size; “Personalizar” loads a combo and its composition into the builder. These records come from the backend catalog.
+The catalog displays active free sizes and combos with search, category and price filters, a promotion filter, and sorting. Selecting a card opens an accessible details dialog with a larger image, descriptive copy, price, and combo composition/inclusions. Its CTA selects a free size for building or loads a combo and its composition into the builder. Flavors/toppings/etc. remain builder choices rather than standalone purchasable products. These records come from the backend catalog.
 
 The builder can add up to 100 configured açaís to one cart and remove individual lines. A combo can include multiple sizes with quantities; each portion is configured separately, in sequence, and becomes its own cart/order line. The cart and checkout form are client-memory state and are cleared on reload.
 
