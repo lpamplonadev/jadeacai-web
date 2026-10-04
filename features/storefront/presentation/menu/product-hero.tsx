@@ -30,6 +30,20 @@ type ProductHeroProps = {
   onChangeSlide: (direction: number) => void;
 };
 
+function inclusionLabel(
+  count: number,
+  singular: string,
+  plural: string,
+  suffix: string,
+) {
+  if (count <= 0) return null;
+  return `${count} ${count === 1 ? singular : plural}${suffix}`;
+}
+
+function visibleLabels(labels: (string | null)[]) {
+  return labels.filter((label): label is string => label !== null);
+}
+
 export function ProductHero({
   activeSlide,
   products,
@@ -42,8 +56,24 @@ export function ProductHero({
   const startingPrice = catalog?.cupSizes.length
     ? Math.min(...catalog.cupSizes.map((size) => size.price))
     : null;
+  const freeInclusions = catalog
+    ? visibleLabels([
+        inclusionLabel(
+          catalog.includedToppings,
+          "acompanhamento",
+          "acompanhamentos",
+          catalog.includedToppings === 1 ? " incluído" : " incluídos",
+        ),
+        inclusionLabel(
+          catalog.includedFruits,
+          "fruta",
+          "frutas",
+          catalog.includedFruits === 1 ? " incluída" : " incluídas",
+        ),
+      ])
+    : [];
   const freeDescription = catalog
-    ? `Escolha entre ${flavorNames.join(" ou ") || "os sabores disponíveis"}, ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} fruta(s) incluídos. Personalize e veja o valor antes de pedir.`
+    ? `Escolha entre ${flavorNames.join(" ou ") || "os sabores disponíveis"}.${freeInclusions.length ? ` ${freeInclusions.join(" e ")}.` : ""} Personalize e veja o valor antes de pedir.`
     : "Carregando as opções e preços atuais do cardápio.";
   const freePriceLabel = startingPrice === null
     ? "Consulte as opções do cardápio"
@@ -61,9 +91,7 @@ export function ProductHero({
       priceLabel: freePriceLabel,
       image: products[0].image,
       imageAlt: products[0].imageAlt,
-      imageBadge: catalog
-        ? `${catalog.includedToppings} acompanhamentos incluídos`
-        : "Cardápio atualizado",
+      imageBadge: catalog ? freeInclusions.join(" · ") : "Cardápio atualizado",
     },
     {
       name: flavorNames[1] ?? "Personalize seu açaí",
@@ -79,38 +107,41 @@ export function ProductHero({
       imageAlt: products[1].imageAlt,
       imageBadge: flavorNames.join(" ou ") || "Opções do cardápio",
     },
-    ...combos.slice(0, 2).map((combo) => ({
-      name: combo.name,
-      badge: combo.tag,
-      headline:
-        combo.includedFruits > 0
-          ? `${combo.name}, com fruta`
-          : `${combo.name} pra começar`,
-      highlight: `por ${combo.price}.`,
-      description: [
-        `${combo.includedToppings} adicionais grátis`,
-        ...(combo.includedFruits > 0
-          ? [
-              `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"} grátis`,
-            ]
-          : []),
-        `${combo.includedExtras} extra grátis`,
-      ].join(" + "),
-      ctaLabel: `Ver ${combo.name}`,
-      href: "#catalogo",
-      priceLabel: `${combo.size} · ${combo.price}`,
-      image: combo.image,
-      imageAlt: combo.imageAlt,
-      imageBadge: [
-        `${combo.includedToppings} adicionais grátis`,
-        ...(combo.includedFruits > 0
-          ? [
-              `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`,
-            ]
-          : []),
-        `${combo.includedExtras} extra grátis`,
-      ].join(" · "),
-    })),
+    ...combos.slice(0, 2).map((combo) => {
+      const includedItems = visibleLabels([
+        inclusionLabel(
+          combo.includedToppings,
+          "adicional",
+          "adicionais",
+          " grátis",
+        ),
+        inclusionLabel(
+          combo.includedFruits,
+          "fruta",
+          "frutas",
+          " grátis",
+        ),
+        inclusionLabel(combo.includedExtras, "extra", "extras", " grátis"),
+      ]);
+      return {
+        name: combo.name,
+        badge: combo.tag,
+        headline:
+          includedItems.some((item) => item.includes("fruta"))
+            ? `${combo.name}, com fruta`
+            : `${combo.name} pra começar`,
+        highlight: `por ${combo.price}.`,
+        description: includedItems.length
+          ? includedItems.join(" + ")
+          : "Personalize os complementos no configurador.",
+        ctaLabel: `Ver ${combo.name}`,
+        href: "#catalogo",
+        priceLabel: `${combo.size} · ${combo.price}`,
+        image: combo.image,
+        imageAlt: combo.imageAlt,
+        imageBadge: includedItems.join(" · "),
+      };
+    }),
   ];
 
   const promotion = promotions[activeSlide] ?? promotions[0];
@@ -220,9 +251,11 @@ export function ProductHero({
               </span>
             </span>
           </div>
-          <span className="absolute right-4 top-4 z-20 rounded-full bg-coral px-3 py-1.5 text-xs font-bold text-white sm:right-6 sm:top-6">
-            {promotion.imageBadge}
-          </span>
+          {promotion.imageBadge && (
+            <span className="absolute right-4 top-4 z-20 rounded-full bg-coral px-3 py-1.5 text-xs font-bold text-white sm:right-6 sm:top-6">
+              {promotion.imageBadge}
+            </span>
+          )}
         </div>
       </div>
     </section>
