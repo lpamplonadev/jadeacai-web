@@ -119,7 +119,7 @@ The builder has two steps, both controlled in `acai-builder.tsx`:
 
 ### Step 2: delivery and payment
 
-`DeliveryCheckoutForm` requires name, phone, postal code, street, number, neighborhood, and payment method. Complement, reference, and notes are optional. Payment methods are Pix, cash, and card at delivery. For cash, an optional “Preciso de troco” checkbox reveals a required amount input whose HTML `min` is the current order total.
+`DeliveryCheckoutForm` requires name, a valid Brazilian mobile phone, postal code, street, number, neighborhood, and payment method. The phone input formats as `(DD) 9XXXX-XXXX` and validates an active DDD and the ninth-digit mobile prefix; the backend repeats the validation and stores digits only. Complement, reference, and notes are optional. Payment methods are Pix, cash, and card at delivery. For cash, an optional “Preciso de troco” checkbox reveals a required amount input whose HTML `min` is the current order total.
 
 The customer can add up to 100 configured açaís; each cart line carries its own configuration and estimated subtotal. Combo portions are added one at a time so flavor and customizations can differ per cup. Checkout builds a Portuguese multiline WhatsApp message with all lines, totals, delivery details, payment, and (when applicable) the change request, then opens `https://wa.me/<number>?text=<encoded message>`. The frontend also sends one `CreateOrderRequest` with `items[]` to `POST /api/v1/orders`. The API persists the submitted estimated amounts but does not currently recalculate prices or validate selected catalog IDs; those values are not trusted charge amounts.
 

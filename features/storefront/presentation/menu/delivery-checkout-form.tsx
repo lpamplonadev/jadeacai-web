@@ -1,6 +1,10 @@
 import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import { getCepAddress } from "@/features/storefront/infrastructure/cep-api";
+import {
+  brazilianMobilePhonePattern,
+  formatBrazilianMobilePhone,
+} from "@/features/storefront/domain/order";
 
 export type DeliveryDetails = {
   customerName: string;
@@ -120,10 +124,16 @@ export function DeliveryCheckoutForm({
             <input
               type="tel"
               autoComplete="tel"
+              inputMode="tel"
               required
+              maxLength={15}
+              pattern={brazilianMobilePhonePattern}
+              title="Informe um celular com DDD válido no formato (DD) 9XXXX-XXXX."
               value={details.phone}
-              onChange={(event) => onChange("phone", event.target.value)}
-              placeholder="(00) 00000-0000"
+              onChange={(event) =>
+                onChange("phone", formatBrazilianMobilePhone(event.target.value))
+              }
+              placeholder="(21) 99999-9999"
               className={inputClassName}
             />
           </label>
