@@ -2,6 +2,8 @@
 
 Loja Jade Açaí com cardápio carregado da API, montador de açaí, carrinho com várias configurações por pedido e painel administrativo protegido em `/admin`. O Admin consulta pedidos, atualiza etapas, apresenta indicadores e gerencia itens e combos do catálogo.
 
+Consulte [ARCHITECTURE.md](ARCHITECTURE.md) para conhecer as camadas e as regras de dependência do frontend.
+
 ## Requisitos
 
 - Node.js compatível com a versão usada pelo projeto (desenvolvimento atual feito com Node 24)
