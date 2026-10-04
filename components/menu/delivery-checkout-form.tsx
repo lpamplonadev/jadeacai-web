@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 
 export type DeliveryDetails = {
@@ -35,6 +35,12 @@ const paymentMethods = [
   { id: "card", label: "Cartão na entrega" },
 ];
 
+type ViaCepResponse = {
+  bairro?: string;
+  erro?: boolean;
+  logradouro?: string;
+};
+
 export function DeliveryCheckoutForm({
   details,
   onChange,
@@ -44,9 +50,59 @@ export function DeliveryCheckoutForm({
   isSubmitting,
   orderFeedback,
 }: DeliveryCheckoutFormProps) {
+  const [cepLookupMessage, setCepLookupMessage] = useState("");
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+  const cepLookupController = useRef<AbortController | null>(null);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onSubmit();
+  }
+
+  function handlePostalCodeChange(value: string) {
+    cepLookupController.current?.abort();
+    cepLookupController.current = null;
+    setIsLookingUpCep(false);
+    setCepLookupMessage("");
+    onChange("postalCode", value);
+  }
+
+  async function lookupPostalCode() {
+    const digits = details.postalCode.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+
+    cepLookupController.current?.abort();
+    const controller = new AbortController();
+    cepLookupController.current = controller;
+    setIsLookingUpCep(true);
+    setCepLookupMessage("");
+
+    try {
+      const response = await fetch(
+        `https://viacep.com.br/ws/${digits}/json/`,
+        { signal: controller.signal },
+      );
+      if (!response.ok) throw new Error("CEP lookup failed");
+
+      const address = (await response.json()) as ViaCepResponse;
+      if (address.erro) {
+        setCepLookupMessage("CEP não encontrado. Confira ou preencha o endereço manualmente.");
+        return;
+      }
+
+      if (address.logradouro) onChange("street", address.logradouro);
+      if (address.bairro) onChange("neighborhood", address.bairro);
+      setCepLookupMessage("Endereço localizado. Confira e informe o número.");
+    } catch {
+      if (!controller.signal.aborted) {
+        setCepLookupMessage("Não foi possível consultar o CEP. Preencha o endereço manualmente.");
+      }
+    } finally {
+      if (cepLookupController.current === controller) {
+        cepLookupController.current = null;
+        setIsLookingUpCep(false);
+      }
+    }
   }
 
   return (
@@ -88,11 +144,22 @@ export function DeliveryCheckoutForm({
               inputMode="numeric"
               autoComplete="postal-code"
               required
+              maxLength={9}
               value={details.postalCode}
-              onChange={(event) => onChange("postalCode", event.target.value)}
+              onChange={(event) => handlePostalCodeChange(event.target.value)}
+              onBlur={() => void lookupPostalCode()}
+              aria-describedby="checkout-postal-code-feedback"
               placeholder="00000-000"
               className={inputClassName}
             />
+            <span
+              id="checkout-postal-code-feedback"
+              role="status"
+              aria-live="polite"
+              className="block min-h-4 text-xs font-normal text-crimson/75"
+            >
+              {isLookingUpCep ? "Consultando CEP..." : cepLookupMessage}
+            </span>
           </label>
         </div>
       </fieldset>
