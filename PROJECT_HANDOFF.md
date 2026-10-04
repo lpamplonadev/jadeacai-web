@@ -94,7 +94,7 @@ The hero builds four promotions in `product-hero.tsx`:
 - Slides 2 and 3 are generated from `combos.slice(0, 2)`; their CTA target is `#catalogo`.
 - The dots and arrows change the active slide. `app/page.tsx` currently uses `heroSlideCount = 4`; update that value or derive it from shared promotions if the count changes.
 - Product images used by the hero come from `products`; combo cards and combo hero slides use `combos`.
-- Hero images keep the full source photo visible with `object-contain`; a soft, blurred copy fills the frame behind it. Keep both image layers and foreground badges together when changing the hero presentation.
+- Hero image containers stay square (`1:1`) at every breakpoint. The full source photo remains visible with `object-contain`, while a soft, blurred copy fills the frame behind it. Keep both image layers and foreground badges together when changing the hero presentation.
 
 The catalog displays active free sizes and combos with search, category and price filters, a promotion filter, and sorting. Selecting a card opens an accessible details dialog with a larger image, descriptive copy, price, and combo composition/inclusions. Its CTA selects a free size for building or loads a combo and its composition into the builder. Flavors/toppings/etc. remain builder choices rather than standalone purchasable products. These records come from the backend catalog.
 

@@ -196,7 +196,7 @@ export function ProductHero({
           </div>
         </div>
 
-        <div className="relative order-1 mx-auto h-[270px] w-full max-w-xl md:order-2 md:h-[430px]">
+        <div className="relative order-1 mx-auto aspect-square w-full max-w-xl md:order-2">
           <div className="absolute inset-0 overflow-hidden rounded-md bg-petal">
             <Image
               key={`${promotion.image}-backdrop`}
