@@ -199,26 +199,15 @@ export function ProductHero({
         <div className="relative order-1 mx-auto aspect-square w-full max-w-xl md:order-2">
           <div className="absolute inset-0 overflow-hidden rounded-md bg-petal">
             <Image
-              key={`${promotion.image}-backdrop`}
-              src={promotion.image}
-              alt=""
-              aria-hidden="true"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              loading="eager"
-              className="scale-110 object-cover opacity-40 blur-2xl"
-            />
-            <div className="absolute inset-0 bg-cream/20" />
-            <Image
               key={promotion.image}
               src={promotion.image}
               alt={promotion.imageAlt}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               loading="eager"
-              className="z-10 object-contain p-2 transition-opacity duration-300 sm:p-4"
+              className="h-full w-full object-cover transition-opacity duration-300"
             />
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-dark/20 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-dark/20 via-transparent to-transparent" />
           </div>
           <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 rounded-md bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm sm:bottom-6 sm:left-6">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-petal text-crimson">
