@@ -95,6 +95,9 @@ export function OrderDetailsDialog({
   const [catalogCombos, setCatalogCombos] = useState<
     { id: string; name: string }[]
   >([]);
+  const [catalogGourmets, setCatalogGourmets] = useState<
+    { id: string; name: string }[]
+  >([]);
   const payload = asOrderPayload(order.orderData);
   const delivery = payload.delivery;
   const payment = payload.payment;
@@ -116,7 +119,13 @@ export function OrderDetailsDialog({
             id: order.id,
             name:
               catalogCombos.find((combo) => combo.id === payload.acai?.comboId)
-                ?.name ?? "Açaí livre",
+                ?.name ??
+              catalogGourmets.find(
+                (gourmet) =>
+                  gourmet.id === payload.acai?.gourmetId ||
+                  gourmet.id === payload.acai?.comboId,
+              )
+                ?.name ?? "Produto do cardápio",
             estimatedSubtotalCents: order.estimatedTotalCents,
             acai: payload.acai,
           },
@@ -141,11 +150,16 @@ export function OrderDetailsDialog({
         const catalog = (await response.json()) as {
           items?: { id: string; name: string }[];
           combos?: { id: string; name: string }[];
+          gourmets?: { id: string; name: string }[];
         };
         setCatalogItems(catalog.items ?? []);
         setCatalogCombos(catalog.combos ?? []);
+        setCatalogGourmets(catalog.gourmets ?? []);
       } catch {
-        if (!controller.signal.aborted) setCatalogItems([]);
+        if (!controller.signal.aborted) {
+          setCatalogItems([]);
+          setCatalogGourmets([]);
+        }
       }
     }
 

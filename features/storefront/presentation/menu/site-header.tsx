@@ -26,7 +26,7 @@ export function SiteHeader({
             style={{ fontFamily: "Pacifico, cursive" }}
             className="text-xl sm:text-4xl font-extrabold tracking-tight text-cream"
           >
-            Jade's Açaí
+            Jade&apos;s Açaí
           </span>
         </a>
         <nav aria-label="Navegação principal" className="hidden gap-6 md:flex">

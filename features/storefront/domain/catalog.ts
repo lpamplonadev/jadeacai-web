@@ -1,4 +1,4 @@
-import type { MenuCombo, MenuComboItem } from "./menu-types";
+import type { MenuCombo, MenuComboItem, MenuGourmet } from "./menu-types";
 
 export type PublicCatalogItem = {
   id: string;
@@ -12,10 +12,7 @@ export type PublicCatalogItem = {
 export type PublicCatalogCombo = Pick<
   MenuCombo,
   | "id"
-  | "category"
   | "name"
-  | "description"
-  | "gourmetSizes"
   | "size"
   | "priceCents"
   | "includedToppings"
@@ -30,8 +27,11 @@ export type PublicCatalogCombo = Pick<
   items: MenuComboItem[];
 };
 
+export type PublicCatalogGourmet = MenuGourmet;
+
 export type PublicCatalog = {
   items: PublicCatalogItem[];
   combos: PublicCatalogCombo[];
+  gourmets: PublicCatalogGourmet[];
   rules: Record<string, number>;
 };

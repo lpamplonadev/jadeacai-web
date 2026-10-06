@@ -5,30 +5,28 @@ import {
   MagnifyingGlassIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import type { BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
 import type {
   MenuCombo,
+  MenuGourmet,
   MenuGourmetSize,
-  Product,
+  MenuOrderProduct,
 } from "@/features/storefront/domain/menu-types";
 
 type ProductCatalogProps = {
   combos: MenuCombo[];
-  catalog: BuilderCatalogData | null;
-  products: Product[];
+  gourmets: MenuGourmet[];
   storeIsOpen: boolean;
-  onChooseCombo: (combo: MenuCombo) => void;
-  onChooseSize: (sizeId: string) => void;
+  onChooseProduct: (product: MenuOrderProduct) => void;
   apiStatus: "checking" | "online" | "offline";
   catalogError: boolean;
 };
 
-type ProductCategory = "all" | "free" | "combo" | "gourmet";
+type ProductCategory = "all" | "combo" | "gourmet";
 type SortOrder = "featured" | "price-asc" | "price-desc";
 
 type CatalogProduct = {
   id: string;
-  type: "free" | "combo" | "gourmet";
+  type: "combo" | "gourmet";
   name: string;
   description: string;
   details: string;
@@ -53,11 +51,9 @@ const filterInputClassName =
 
 export function ProductCatalog({
   combos,
-  catalog,
-  products,
+  gourmets,
   storeIsOpen,
-  onChooseCombo,
-  onChooseSize,
+  onChooseProduct,
   apiStatus,
   catalogError,
 }: ProductCatalogProps) {
@@ -86,120 +82,98 @@ export function ProductCatalog({
     offline: "API indisponível",
   }[apiStatus];
 
-  const productsToShow = catalog
-    ? [
-        ...catalog.cupSizes.map((size, index) => {
-          const image = products[index % Math.max(products.length, 1)];
-          return {
-            id: `free-${size.id}`,
-            type: "free" as const,
-            name: `Açaí livre · ${size.name}`,
-            description: `Monte com ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}.`,
-            details: `Um açaí do seu jeito, do primeiro ao último detalhe. Escolha o sabor, combine seus acompanhamentos favoritos e finalize com frutas. Este tamanho inclui ${catalog.includedToppings} acompanhamentos e ${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta" : "frutas"}; adicionais e valores aparecem no configurador.`,
-            highlights: [
-              `Tamanho ${size.name}`,
-              `${catalog.includedToppings} ${catalog.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
-              `${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`,
-              "Sabor e complementos escolhidos por você",
-            ],
-            price: size.price,
-            tag: "Monte do seu jeito",
-            image: image?.image ?? "",
-            imageAlt: image?.imageAlt ?? size.name,
-            rank: index,
-            choose: () => onChooseSize(size.id),
-          };
-        }),
-        ...combos.map((combo, index) => ({
-          id: `combo-${combo.id}`,
-          type: combo.category === "gourmet" ? ("gourmet" as const) : ("combo" as const),
+  const productsToShow: CatalogProduct[] = [
+    ...combos.map((combo, index) => ({
+      id: `combo-${combo.id}`,
+      type: "combo" as const,
+      name: combo.name,
+      description: [
+        (combo.items ?? [])
+          .filter((item) => item.kind === "size")
+          .map((item) => `${item.quantity} × ${item.name}`)
+          .join(" + "),
+        `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
+        ...(combo.includedFruits > 0
+          ? [`${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`]
+          : []),
+        ...(combo.includedExtras > 0
+          ? [`${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`]
+          : []),
+      ].filter(Boolean).join(" · "),
+      details: `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
+      highlights: [
+        ...(combo.items ?? []).map((item) => `${item.quantity} × ${item.name}`),
+        `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
+        combo.includedFruits > 0
+          ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
+          : "Frutas disponíveis para personalizar",
+        combo.includedExtras > 0
+          ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
+          : "Extras disponíveis para personalizar",
+      ],
+      price: combo.priceCents / 100,
+      tag: combo.tag || "Combo",
+      image: combo.image,
+      imageAlt: combo.imageAlt,
+      rank: index,
+      choose: () =>
+        onChooseProduct({
+          type: "combo",
+          id: combo.id,
           name: combo.name,
-          description:
-            combo.category === "gourmet"
-              ? combo.description || "Uma receita exclusiva, pronta para saborear."
-              : [
-                  (combo.items ?? [])
-                    .filter((item) => item.kind === "size")
-                    .map((item) => `${item.quantity} × ${item.name}`)
-                    .join(" + "),
-                  `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
-                  ...(combo.includedFruits > 0
-                    ? [
-                        `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`,
-                      ]
-                    : []),
-                  ...(combo.includedExtras > 0
-                    ? [
-                        `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`,
-                      ]
-                    : []),
-                ]
-                  .filter(Boolean)
-                  .join(" · "),
-          details:
-            combo.category === "gourmet"
-              ? combo.description || "Uma receita exclusiva, preparada pela casa."
-              : `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
-          highlights:
-            combo.category === "gourmet"
-              ? (combo.items ?? [])
-                  .filter((item) => item.kind !== "size")
-                  .map((item) => `${item.quantity} × ${item.name}`)
-              : [
-                  ...(combo.items ?? []).map(
-                    (item) => `${item.quantity} × ${item.name}`,
-                  ),
-                  `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
-                  combo.includedFruits > 0
-                    ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
-                    : "Frutas disponíveis para personalizar",
-                  combo.includedExtras > 0
-                    ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
-                    : "Extras disponíveis para personalizar",
-                ],
-          price:
-            combo.category === "gourmet" && combo.gourmetSizes?.length
-              ? Math.min(...combo.gourmetSizes.map((size) => size.priceCents)) /
-                100
-              : combo.priceCents / 100,
-          pricePrefix:
-            combo.category === "gourmet" && combo.gourmetSizes?.length
-              ? "A partir de"
-              : undefined,
-          gourmetSizes: combo.gourmetSizes,
-          tag:
-            combo.tag ||
-            (combo.category === "gourmet" ? "Receita da casa" : "Combo"),
+          sizeId: combo.sizeId ?? "",
+          size: combo.size,
+          priceCents: combo.priceCents,
+          includedToppings: combo.includedToppings,
+          includedFruits: combo.includedFruits,
+          includedExtras: combo.includedExtras,
+          tag: combo.tag,
           image: combo.image,
           imageAlt: combo.imageAlt,
-          rank: index,
-          choose: (sizeId) => {
-            const selectedSize = combo.gourmetSizes?.find(
-              (size) => size.sizeId === sizeId,
-            );
-            if (combo.category !== "gourmet" || !selectedSize) {
-              onChooseCombo(combo);
-              return;
-            }
-            onChooseCombo({
-              ...combo,
-              sizeId: selectedSize.sizeId,
-              size: selectedSize.size,
-              priceCents: selectedSize.priceCents,
-              items: [
-                ...(combo.items ?? []).filter((item) => item.kind !== "size"),
-                {
-                  id: selectedSize.sizeId,
-                  kind: "size",
-                  name: selectedSize.size,
-                  quantity: 1,
-                },
-              ],
-            });
-          },
-        })),
-      ]
-    : [];
+          items: combo.items ?? [],
+        }),
+    })),
+    ...gourmets.map((gourmet, index) => ({
+      id: `gourmet-${gourmet.id}`,
+      type: "gourmet" as const,
+      name: gourmet.name,
+      description: gourmet.description,
+      details: gourmet.description,
+      highlights: gourmet.items.map((item) => `${item.quantity} × ${item.name}`),
+      price: gourmet.sizes.length
+        ? Math.min(...gourmet.sizes.map((size) => size.priceCents)) / 100
+        : 0,
+      pricePrefix: "A partir de",
+      gourmetSizes: gourmet.sizes,
+      tag: gourmet.tag || "Receita da casa",
+      image: gourmet.image,
+      imageAlt: gourmet.imageAlt,
+      rank: combos.length + index,
+      choose: (sizeId?: string) => {
+        const size = gourmet.sizes.find((option) => option.sizeId === sizeId);
+        if (!size) return;
+        onChooseProduct({
+          type: "gourmet",
+          id: gourmet.id,
+          name: gourmet.name,
+          sizeId: size.sizeId,
+          size: size.size,
+          priceCents: size.priceCents,
+          includedToppings: 0,
+          includedFruits: 0,
+          includedExtras: 0,
+          tag: gourmet.tag,
+          image: gourmet.image,
+          imageAlt: gourmet.imageAlt,
+          description: gourmet.description,
+          items: [
+            ...gourmet.items,
+            { id: size.sizeId, kind: "size", name: size.size, quantity: 1 },
+          ],
+        });
+      },
+    })),
+  ];
 
   function customizeSelectedProduct() {
     if (!selectedProduct) return;
@@ -220,7 +194,7 @@ export function ProductCatalog({
   const upperPrice = maxPrice === "" ? null : Number(maxPrice);
   const filteredProducts = productsToShow.filter((product) => {
     if (category !== "all" && product.type !== category) return false;
-    if (promotionsOnly && product.type === "free") return false;
+    if (promotionsOnly && product.type !== "combo") return false;
     if (lowerPrice !== null && product.price < lowerPrice) return false;
     if (upperPrice !== null && product.price > upperPrice) return false;
     return (
@@ -279,7 +253,6 @@ export function ProductCatalog({
               {(
                 [
                   ["all", "Todos os produtos"],
-                  ["free", "Açaí livre"],
                   ["combo", "Combos"],
                   ["gourmet", "Gourmet"],
                 ] as const
@@ -359,7 +332,7 @@ export function ProductCatalog({
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por tamanho ou combo"
+              placeholder="Buscar por produto ou tamanho"
               className="min-h-12 w-full rounded-md border border-blush bg-white pl-10 pr-4 text-sm text-text outline-none placeholder:text-muted-foreground focus:border-crimson"
             />
           </label>
@@ -428,11 +401,7 @@ export function ProductCatalog({
                     </div>
                     <div className="p-4">
                       <p className="text-[11px] font-extrabold uppercase text-crimson">
-                        {product.type === "free"
-                          ? "Açaí livre"
-                          : product.type === "gourmet"
-                            ? "Gourmet"
-                            : "Combo"}
+                        {product.type === "gourmet" ? "Gourmet" : "Combo"}
                       </p>
                       <h3 className="mt-1 min-h-12 font-bold text-text">
                         {product.name}
@@ -495,11 +464,9 @@ export function ProductCatalog({
                 <div className="p-5 sm:p-7">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-xs font-extrabold uppercase text-crimson">
-                      {selectedProduct.type === "free"
-                        ? "Açaí livre"
-                        : selectedProduct.type === "gourmet"
-                          ? "Gourmet"
-                          : selectedProduct.tag || "Combo"}
+                      {selectedProduct.type === "gourmet"
+                        ? "Gourmet"
+                        : selectedProduct.tag || "Combo"}
                     </p>
                     <button
                       type="button"
@@ -574,11 +541,9 @@ export function ProductCatalog({
                     >
                       {storeIsOpen ? (
                         <>
-                          {selectedProduct.type === "free"
-                            ? "Montar meu açaí"
-                            : selectedProduct.type === "gourmet"
-                              ? "Ver receita Gourmet"
-                              : "Personalizar combo"}
+                          {selectedProduct.type === "gourmet"
+                            ? "Ver receita Gourmet"
+                            : "Personalizar combo"}
                           <ArrowRightIcon aria-hidden="true" size={17} />
                         </>
                       ) : (

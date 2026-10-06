@@ -3,22 +3,19 @@
 import { useEffect, useState } from "react";
 import { CheckIcon } from "@phosphor-icons/react";
 import { ChoiceChecklist } from "@/features/storefront/presentation/menu/choice-checklist";
-import { ComboLimitDialog } from "@/features/storefront/presentation/menu/combo-limit-dialog";
 import {
   DeliveryCheckoutForm,
   type DeliveryDetails,
 } from "@/features/storefront/presentation/menu/delivery-checkout-form";
 import {
   currency,
-  getCupSizeForCombo,
   type BuilderCatalogData,
   type BuilderChoice,
   type BuilderPriceChoice,
   type SelectionGroup,
-  type PendingSelection,
 } from "@/features/storefront/domain/acai-builder-data";
 import { OrderSummary } from "@/features/storefront/presentation/menu/order-summary";
-import type { MenuCombo } from "@/features/storefront/domain/menu-types";
+import type { MenuOrderProduct } from "@/features/storefront/domain/menu-types";
 import {
   ApiError,
   createOrder,
@@ -32,31 +29,29 @@ import type { StoreStatus } from "@/shared/domain/store-settings";
 
 type BuilderCartItem = CreateOrderLine & { description: string };
 
-function getComboPortions(combo: MenuCombo, cupSizes: BuilderPriceChoice[]) {
-  const portions = (combo.items ?? [])
+function getProductPortions(product: MenuOrderProduct, cupSizes: BuilderPriceChoice[]) {
+  const portions = product.items
     .filter((item) => item.kind === "size")
     .flatMap((item) => {
       const size = cupSizes.find((choice) => choice.id === item.id);
       return size ? Array.from({ length: item.quantity }, () => size) : [];
     });
-  return portions.length ? portions : [getCupSizeForCombo(combo, cupSizes)];
+  return portions.length
+    ? portions
+    : cupSizes.filter((size) => size.id === product.sizeId).slice(0, 1);
 }
 
 export function AcaiBuilder({
-  selectedCombo,
-  initialSizeId,
-  sizeSelectionRequest,
-  onClearCombo,
+  selectedProduct,
+  onClearProduct,
   onCartCountChange,
   catalog,
   storeIsOpen,
   whatsAppNumber,
   onStoreStatusChange,
 }: {
-  selectedCombo: MenuCombo | null;
-  initialSizeId: string | null;
-  sizeSelectionRequest: number;
-  onClearCombo: () => void;
+  selectedProduct: MenuOrderProduct | null;
+  onClearProduct: () => void;
   onCartCountChange: (count: number) => void;
   catalog: BuilderCatalogData;
   storeIsOpen: boolean;
@@ -72,11 +67,11 @@ export function AcaiBuilder({
     extras,
     flavors,
     fruits,
-    includedFruits,
-    includedToppings,
     sauces,
     toppings,
   } = catalog;
+  const selectedCombo = selectedProduct;
+  const onClearCombo = onClearProduct;
   const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
   const [builderError, setBuilderError] = useState("");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
@@ -103,7 +98,6 @@ export function AcaiBuilder({
     notes: "",
   });
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
   const [selectedSauce, setSelectedSauce] = useState<string | null>(null);
   const [selectedCondimentPosition, setSelectedCondimentPosition] = useState<
@@ -111,21 +105,12 @@ export function AcaiBuilder({
   >(null);
   const [selectedFruits, setSelectedFruits] = useState<string[]>([]);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-  const [pendingSelection, setPendingSelection] =
-    useState<PendingSelection | null>(null);
-  const [previousSizeSelectionRequest, setPreviousSizeSelectionRequest] =
-    useState(sizeSelectionRequest);
   const [comboServingIndex, setComboServingIndex] = useState(0);
-  const [previousComboID, setPreviousComboID] = useState(selectedCombo?.id);
+  const [previousProductID, setPreviousProductID] = useState(selectedProduct?.id);
 
-  if (sizeSelectionRequest !== previousSizeSelectionRequest) {
-    setPreviousSizeSelectionRequest(sizeSelectionRequest);
-    if (initialSizeId && !selectedCombo) setSelectedSize(initialSizeId);
-  }
-
-  function setComboDefaultItems(combo: MenuCombo) {
-    const comboItems = combo.items ?? [];
-    if (combo.category === "gourmet") {
+  function setProductDefaultItems(combo: MenuOrderProduct) {
+    const comboItems = combo.items;
+    if (combo.type === "gourmet") {
       setSelectedFlavor(
         comboItems.find((item) => item.kind === "flavor")?.id ?? null,
       );
@@ -163,32 +148,28 @@ export function AcaiBuilder({
     );
   }
 
-  if (selectedCombo?.id !== previousComboID) {
-    setPreviousComboID(selectedCombo?.id);
+  if (selectedProduct?.id !== previousProductID) {
+    setPreviousProductID(selectedProduct?.id);
     if (selectedCombo) {
       setComboServingIndex(0);
-      setSelectedSize(getComboPortions(selectedCombo, cupSizes)[0].id);
-      setComboDefaultItems(selectedCombo);
+      setProductDefaultItems(selectedCombo);
       setCheckoutStep(1);
     }
   }
 
   const comboPortions = selectedCombo
-    ? getComboPortions(selectedCombo, cupSizes)
+    ? getProductPortions(selectedCombo, cupSizes)
     : [];
   const comboServingCount = comboPortions.length;
   const flavor = flavors.find((item) => item.id === selectedFlavor) ?? null;
-  const isFixedGourmet = selectedCombo?.category === "gourmet";
-  const size = selectedCombo
-    ? (comboPortions[comboServingIndex] ??
-      getCupSizeForCombo(selectedCombo, cupSizes))
-    : (cupSizes.find((item) => item.id === selectedSize) ?? null);
+  const isFixedGourmet = selectedCombo?.type === "gourmet";
+  const size = selectedCombo ? (comboPortions[comboServingIndex] ?? null) : null;
   const toppingAllowance = isFixedGourmet
     ? selectedToppings.length
-    : (selectedCombo?.includedToppings ?? includedToppings);
+    : (selectedCombo?.includedToppings ?? 0);
   const fruitAllowance = isFixedGourmet
     ? selectedFruits.length
-    : (selectedCombo?.includedFruits ?? includedFruits);
+    : (selectedCombo?.includedFruits ?? 0);
   const extrasAllowance = isFixedGourmet
     ? selectedExtras.length
     : (selectedCombo?.includedExtras ?? 0);
@@ -241,7 +222,6 @@ export function AcaiBuilder({
   const hasCurrentConfiguration = Boolean(flavor && size);
   const currentHasSelections = Boolean(
     selectedFlavor ||
-    selectedSize ||
     selectedToppings.length ||
     selectedSauce ||
     selectedCondimentPosition ||
@@ -289,17 +269,14 @@ export function AcaiBuilder({
       toppings: {
         selected: selectedToppings,
         setSelected: setSelectedToppings,
-        allowance: toppingAllowance,
       },
       fruits: {
         selected: selectedFruits,
         setSelected: setSelectedFruits,
-        allowance: fruitAllowance,
       },
       extras: {
         selected: selectedExtras,
         setSelected: setSelectedExtras,
-        allowance: extrasAllowance,
       },
     }[group];
 
@@ -307,24 +284,7 @@ export function AcaiBuilder({
       toggleChoice(id, groupState.selected, groupState.setSelected);
       return;
     }
-    if (selectedCombo && groupState.selected.length >= groupState.allowance) {
-      setPendingSelection({ group, id });
-      return;
-    }
     toggleChoice(id, groupState.selected, groupState.setSelected);
-  }
-
-  function confirmFreeMode() {
-    if (!pendingSelection) return;
-    const groupState = {
-      toppings: [selectedToppings, setSelectedToppings],
-      fruits: [selectedFruits, setSelectedFruits],
-      extras: [selectedExtras, setSelectedExtras],
-    }[pendingSelection.group] as [string[], (next: string[]) => void];
-    onClearCombo();
-    setComboServingIndex(0);
-    toggleChoice(pendingSelection.id, groupState[0], groupState[1]);
-    setPendingSelection(null);
   }
 
   function updateDeliveryDetails(
@@ -342,13 +302,11 @@ export function AcaiBuilder({
 
   function resetCurrentSelections() {
     setSelectedFlavor(null);
-    setSelectedSize(null);
     setSelectedToppings([]);
     setSelectedSauce(null);
     setSelectedCondimentPosition(null);
     setSelectedFruits([]);
     setSelectedExtras([]);
-    setPendingSelection(null);
   }
 
   function clearCurrentConfiguration() {
@@ -376,7 +334,8 @@ export function AcaiBuilder({
     const acai: OrderAcaiConfiguration = {
       flavorId: flavor.id,
       sizeId: size.id,
-      comboId: selectedCombo?.id ?? "",
+      comboId: selectedCombo?.type === "combo" ? selectedCombo.id : "",
+      gourmetId: selectedCombo?.type === "gourmet" ? selectedCombo.id : "",
       toppingIds: [...selectedToppings],
       sauceId: selectedSauce ?? "none",
       condimentPositionId: selectedCondimentPosition ?? "bottom",
@@ -403,11 +362,10 @@ export function AcaiBuilder({
       ...current,
       {
         id: crypto.randomUUID(),
-        name: selectedCombo
-          ? isFixedGourmet
-            ? selectedCombo.name
-            : `${selectedCombo.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`
-          : `Açaí livre · ${size.name}`,
+        name:
+          selectedCombo?.type === "gourmet"
+            ? `${selectedCombo.name} · ${size.name}`
+            : `${selectedCombo?.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`,
         acai,
         estimatedSubtotalCents: Math.round(currentItemSubtotal * 100),
         description,
@@ -418,7 +376,7 @@ export function AcaiBuilder({
     resetCurrentSelections();
     if (hasNextComboPortion) {
       setComboServingIndex((index) => index + 1);
-      setComboDefaultItems(selectedCombo);
+      setProductDefaultItems(selectedCombo);
     } else {
       setComboServingIndex(0);
       onClearCombo();
@@ -467,14 +425,6 @@ export function AcaiBuilder({
     }
     goToStep(2);
   }
-
-  const pendingGroupName = pendingSelection
-    ? {
-        toppings: "outro acompanhamento",
-        fruits: "outra fruta",
-        extras: "outro extra",
-      }[pendingSelection.group]
-    : "item";
 
   const orderMessage = [
     "Olá! Quero fazer um pedido na Jade:",
@@ -623,18 +573,18 @@ export function AcaiBuilder({
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight text-crimson sm:text-4xl">
             {checkoutStep === 1
-              ? isFixedGourmet && selectedCombo
-                ? selectedCombo.name
-                : "Monte seu açaí"
+              ? (selectedCombo?.name ?? "Selecione um produto")
               : "Entrega e pagamento"}
           </h2>
           <p className="mt-3 text-base leading-7 text-crimson/75">
             {checkoutStep === 1
-              ? isFixedGourmet
-                ? "Receita fixa da casa, preparada com os ingredientes descritos abaixo."
-                : selectedCombo && comboServingCount > 1
-                  ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · escolha o sabor e personalize este copo.`
-                  : "Escolha sabor, tamanho e complementos. O valor acompanha suas escolhas."
+              ? !selectedCombo
+                ? "Escolha um Combo ou Gourmet no cardápio para continuar."
+                : isFixedGourmet
+                  ? "Receita fixa da casa, preparada com os ingredientes descritos abaixo."
+                  : comboServingCount > 1
+                    ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · escolha o sabor e personalize este copo.`
+                    : "Escolha o sabor e personalize os complementos do produto."
               : "Informe onde entregar e como prefere pagar. A solicitação vai para a API e a mensagem abre no WhatsApp."}
           </p>
           <ol
@@ -666,8 +616,13 @@ export function AcaiBuilder({
 
         <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
           {checkoutStep === 1 ? (
+            !selectedCombo ? (
+              <p className="border border-dashed border-blush px-5 py-12 text-center text-sm font-semibold text-crimson/75">
+                Escolha um Combo ou Gourmet no cardápio para configurar seu pedido.
+              </p>
+            ) : (
             <div className="space-y-9">
-              {isFixedGourmet && selectedCombo ? (
+              {isFixedGourmet ? (
                 <section className="border-y border-blush/80 py-5">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-coral">
                     Receita fixa
@@ -718,39 +673,21 @@ export function AcaiBuilder({
 
               <fieldset>
                 <legend className="text-lg font-extrabold text-crimson">
-                  <span className="mr-2 text-coral">02</span> Tamanho do copo
+                  <span className="mr-2 text-coral">02</span> Tamanho selecionado
                 </legend>
-                <p className="mt-1 text-sm text-crimson/75">
-                  {selectedCombo
-                    ? comboServingCount > 1
-                      ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · ${size?.name}.`
-                      : `Tamanho definido pelo ${selectedCombo.name}.`
-                    : "Escolha o tamanho da sua porção."}
+                <p className="mt-1 text-sm font-semibold text-crimson/75">
+                  {comboServingCount > 1
+                    ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · `
+                    : ""}
+                  {size?.name} · {currency.format(comboPrice)}
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {cupSizes.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-pressed={size?.id === item.id}
-                      disabled={selectedCombo !== null}
-                      onClick={() => setSelectedSize(item.id)}
-                      className={`flex min-h-24 flex-col items-start justify-between rounded-md border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:p-4 ${selectedSize === item.id ? "border-crimson bg-white text-crimson" : "border-blush bg-cream/70 text-text hover:border-coral"}`}
-                    >
-                      <span className="text-sm font-bold">{item.name}</span>
-                      <span className="text-sm font-extrabold">
-                        {currency.format(item.price)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
               </fieldset>
 
               <div className="space-y-2">
                 <ChoiceChecklist
                   title="Acompanhamentos"
                   number="03"
-                  description={`${toppingAllowance} acompanhamentos incluídos neste ${selectedCombo ? "combo" : "açaí"}; cada adicional custa ${currency.format(additionalToppingPrice)}.`}
+                  description={`${toppingAllowance} acompanhamentos incluídos neste combo; cada adicional custa ${currency.format(additionalToppingPrice)}.`}
                   choices={toppings}
                   selected={selectedToppings}
                   onToggle={(id) => requestSelection("toppings", id)}
@@ -849,7 +786,7 @@ export function AcaiBuilder({
                 <ChoiceChecklist
                   title="Frutas"
                   number="06"
-                  description={`${fruitAllowance === 0 ? "Nenhuma fruta incluída" : `${fruitAllowance} ${fruitAllowance === 1 ? "fruta incluída" : "frutas incluídas"}`} neste ${selectedCombo ? "combo" : "açaí"}; cada fruta adicional custa ${currency.format(additionalFruitPrice)}.`}
+                  description={`${fruitAllowance === 0 ? "Nenhuma fruta incluída" : `${fruitAllowance} ${fruitAllowance === 1 ? "fruta incluída" : "frutas incluídas"}`} neste combo; cada fruta adicional custa ${currency.format(additionalFruitPrice)}.`}
                   choices={fruits}
                   selected={selectedFruits}
                   onToggle={(id) => requestSelection("fruits", id)}
@@ -913,6 +850,7 @@ export function AcaiBuilder({
                 </p>
               )}
             </div>
+            )
           ) : (
             <DeliveryCheckoutForm
               details={deliveryDetails}
@@ -967,14 +905,6 @@ export function AcaiBuilder({
             onContinueToDelivery={continueToDelivery}
           />
         </div>
-        {pendingSelection && selectedCombo && (
-          <ComboLimitDialog
-            combo={selectedCombo}
-            pendingGroupName={pendingGroupName}
-            onCancel={() => setPendingSelection(null)}
-            onConfirm={confirmFreeMode}
-          />
-        )}
         <p className="mt-8 text-sm text-crimson/75">
           Preços são estimativas do protótipo e serão confirmados no pedido.
         </p>

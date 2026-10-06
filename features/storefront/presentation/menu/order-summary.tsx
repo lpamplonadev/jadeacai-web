@@ -7,7 +7,7 @@ import {
   type BuilderExtra,
   type CondimentPosition,
 } from "@/features/storefront/domain/acai-builder-data";
-import type { MenuCombo } from "@/features/storefront/domain/menu-types";
+import type { MenuOrderProduct } from "@/features/storefront/domain/menu-types";
 
 export type CartSummaryItem = {
   id: string;
@@ -17,7 +17,7 @@ export type CartSummaryItem = {
 };
 
 type OrderSummaryProps = {
-  selectedCombo: MenuCombo | null;
+  selectedCombo: MenuOrderProduct | null;
   comboServingNumber: number;
   comboServingCount: number;
   cartItems: CartSummaryItem[];
@@ -114,7 +114,7 @@ export function OrderSummary({
         <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blush">
           {cartItems.length > 0
             ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-            : (selectedCombo?.name ?? "Açaí livre")}
+            : (selectedCombo?.name ?? "Selecione um produto")}
         </p>
         <h3 className="mt-2 text-2xl font-black">
           {cartItems.length > 0 ? "Seu pedido" : "Do jeitinho que você gosta"}
@@ -291,7 +291,7 @@ export function OrderSummary({
             <span className="block truncate text-sm font-bold">
               {cartItems.length > 0
                 ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-                : (selectedCombo?.name ?? "Açaí livre")}
+                : (selectedCombo?.name ?? "Selecione um produto")}
             </span>
           </span>
           <output

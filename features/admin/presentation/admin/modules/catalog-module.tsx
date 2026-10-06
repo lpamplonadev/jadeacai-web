@@ -14,10 +14,11 @@ import {
   CatalogEditorDialog,
   catalogKindLabels,
 } from "@/features/admin/presentation/admin/modules/catalog-editor-dialog";
+import { GourmetEditorDialog } from "@/features/admin/presentation/admin/modules/gourmet-editor-dialog";
 import type {
-  CatalogComboCategory,
   CatalogCombo,
   CatalogEditor,
+  CatalogGourmet,
   CatalogItem,
   CatalogItemKind,
 } from "@/features/admin/domain/catalog";
@@ -25,6 +26,7 @@ import type {
 type CatalogData = {
   items: CatalogItem[];
   combos: CatalogCombo[];
+  gourmets: CatalogGourmet[];
   rules: { key: string; value: unknown }[];
 };
 
@@ -46,6 +48,7 @@ export function CatalogModule() {
   const [catalog, setCatalog] = useState<CatalogData>({
     items: [],
     combos: [],
+    gourmets: [],
     rules: [],
   });
   const [tab, setTab] = useState<CatalogTab>("items");
@@ -148,25 +151,49 @@ export function CatalogModule() {
     });
   }
 
+  async function toggleGourmet(gourmet: CatalogGourmet) {
+    await mutate(`gourmet-${gourmet.id}`, `/catalog/gourmets/${gourmet.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ available: !gourmet.available }),
+    });
+  }
+
+  async function archiveGourmet(gourmet: CatalogGourmet) {
+    if (
+      !window.confirm(
+        `Excluir “${gourmet.name}” do catálogo? O produto será arquivado para preservar o histórico.`,
+      )
+    )
+      return;
+    await mutate(`gourmet-${gourmet.id}`, `/catalog/gourmets/${gourmet.id}`, {
+      method: "DELETE",
+    });
+  }
+
   function openItemEditor(item?: CatalogItem) {
     setEditor({ type: "item", item });
   }
 
-  function openComboEditor(
-    combo?: CatalogCombo,
-    initialCategory: CatalogComboCategory = "combo",
-  ) {
-    setEditor({ type: "combo", combo, initialCategory });
+  function openComboEditor(combo?: CatalogCombo) {
+    setEditor({ type: "combo", combo });
+  }
+
+  function openGourmetEditor(gourmet?: CatalogGourmet) {
+    setEditor({ type: "gourmet", gourmet });
   }
 
   const visibleItems = catalog.items.filter(
     (item) => kindFilter === "all" || item.kind === kindFilter,
   );
-  const visibleCombos = catalog.combos.filter((combo) =>
-    tab === "gourmet" ? combo.category === "gourmet" : combo.category === "combo",
-  );
+  const visibleCombos = catalog.combos;
+  const visibleGourmets = catalog.gourmets;
   const totalForTab =
-    tab === "items" ? visibleItems.length : visibleCombos.length;
+    tab === "items"
+      ? visibleItems.length
+      : tab === "combos"
+        ? visibleCombos.length
+        : visibleGourmets.length;
   const pageCount = Math.max(1, Math.ceil(totalForTab / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageStart = (currentPage - 1) * pageSize;
@@ -174,16 +201,15 @@ export function CatalogModule() {
   const lastVisibleEntry = Math.min(pageStart + pageSize, totalForTab);
   const paginatedItems = visibleItems.slice(pageStart, pageStart + pageSize);
   const paginatedCombos = visibleCombos.slice(pageStart, pageStart + pageSize);
+  const paginatedGourmets = visibleGourmets.slice(pageStart, pageStart + pageSize);
   const activeItemCount = catalog.items.filter(
     (item) => item.available && !item.deletedAt,
   ).length;
   const activeComboCount = catalog.combos.filter(
-    (combo) =>
-      combo.category === "combo" && combo.available && !combo.deletedAt,
+    (combo) => combo.available && !combo.deletedAt,
   ).length;
-  const activeGourmetCount = catalog.combos.filter(
-    (combo) =>
-      combo.category === "gourmet" && combo.available && !combo.deletedAt,
+  const activeGourmetCount = catalog.gourmets.filter(
+    (gourmet) => gourmet.available && !gourmet.deletedAt,
   ).length;
 
   return (
@@ -281,11 +307,8 @@ export function CatalogModule() {
             type="button"
             onClick={() => {
               if (tab === "items") openItemEditor();
-              else
-                openComboEditor(
-                  undefined,
-                  tab === "gourmet" ? "gourmet" : "combo",
-                );
+              else if (tab === "combos") openComboEditor();
+              else openGourmetEditor();
             }}
             disabled={loading || Boolean(mutating)}
             className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#8b1a2e] px-4 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-50"
@@ -403,13 +426,14 @@ export function CatalogModule() {
             Nenhum item neste tipo.
           </p>
         )
-      ) : visibleCombos.length ? (
+      ) : tab === "combos" ? (
+        visibleCombos.length ? (
         <div className="mt-4 overflow-x-auto border border-[#deded7] bg-white">
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
               <tr>
                 <th scope="col" className="px-4 py-3 font-extrabold">
-                  {tab === "gourmet" ? "Gourmet" : "Combo"}
+                  Combo
                 </th>
                 <th scope="col" className="px-4 py-3 font-extrabold">
                   Tamanho
@@ -436,31 +460,10 @@ export function CatalogModule() {
                     {combo.tag && (
                       <p className="mt-1 text-xs text-[#77776e]">{combo.tag}</p>
                     )}
-                    {combo.description && (
-                      <p className="mt-1 max-w-md text-xs leading-5 text-[#77776e]">
-                        {combo.description}
-                      </p>
-                    )}
                   </td>
-                  <td className="px-4 py-3 text-xs">
-                    {combo.category === "gourmet"
-                      ? combo.gourmetSizes
-                          .map(
-                            (size) =>
-                              `${size.sizeName}${size.available ? "" : " (inativo)"}`,
-                          )
-                          .join(", ")
-                      : combo.sizeName}
-                  </td>
+                  <td className="px-4 py-3 text-xs">{combo.sizeName}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">
-                    {combo.category === "gourmet"
-                      ? combo.gourmetSizes
-                          .map(
-                            (size) =>
-                              `${size.sizeName}: ${currency.format(size.priceCents / 100)}`,
-                          )
-                          .join(" · ")
-                      : currency.format(combo.priceCents / 100)}
+                    {currency.format(combo.priceCents / 100)}
                   </td>
                   <td className="max-w-sm px-4 py-3 text-xs text-[#55554e]">
                     {combo.items.length
@@ -522,19 +525,26 @@ export function CatalogModule() {
             </tbody>
           </table>
         </div>
-      ) : (
+        ) : (
         <p className="mt-4 border border-dashed border-[#d6d6ce] bg-white px-5 py-12 text-center text-sm text-[#77776e]">
-          {tab === "gourmet"
-            ? "Nenhum Gourmet cadastrado."
-            : "Nenhum combo cadastrado."}
+          Nenhum combo cadastrado.
         </p>
+        )
+      ) : (
+        <GourmetCatalogTable
+          gourmets={paginatedGourmets}
+          mutating={mutating}
+          onEdit={openGourmetEditor}
+          onToggle={toggleGourmet}
+          onArchive={archiveGourmet}
+        />
       )}
 
       {!loading && totalForTab > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-[#68685f]">
           <p>
             Mostrando {firstVisibleEntry}–{lastVisibleEntry} de {totalForTab}{" "}
-            {tab === "items" ? "itens" : "combos"}
+            {tab === "items" ? "itens" : tab === "combos" ? "combos" : "Gourmets"}
           </p>
           <div className="flex gap-2">
             <button
@@ -557,7 +567,18 @@ export function CatalogModule() {
         </div>
       )}
 
-      {editor && (
+      {editor?.type === "gourmet" ? (
+        <GourmetEditorDialog
+          key={`gourmet-${editor.gourmet?.id ?? "new"}`}
+          gourmet={editor.gourmet}
+          items={catalog.items}
+          onClose={() => setEditor(null)}
+          onSaved={() => {
+            setEditor(null);
+            setReloadKey((value) => value + 1);
+          }}
+        />
+      ) : editor ? (
         <CatalogEditorDialog
           key={
             editor.type === "item"
@@ -572,7 +593,88 @@ export function CatalogModule() {
             setReloadKey((value) => value + 1);
           }}
         />
-      )}
+      ) : null}
     </section>
+  );
+}
+
+function GourmetCatalogTable({
+  gourmets,
+  mutating,
+  onEdit,
+  onToggle,
+  onArchive,
+}: {
+  gourmets: CatalogGourmet[];
+  mutating: string;
+  onEdit: (gourmet: CatalogGourmet) => void;
+  onToggle: (gourmet: CatalogGourmet) => void;
+  onArchive: (gourmet: CatalogGourmet) => void;
+}) {
+  if (!gourmets.length) {
+    return (
+      <p className="mt-4 border border-dashed border-[#d6d6ce] bg-white px-5 py-12 text-center text-sm text-[#77776e]">
+        Nenhum Gourmet cadastrado.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4 overflow-x-auto border border-[#deded7] bg-white">
+      <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+        <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
+          <tr>
+            <th scope="col" className="px-4 py-3 font-extrabold">Gourmet</th>
+            <th scope="col" className="px-4 py-3 font-extrabold">Tamanhos e preços</th>
+            <th scope="col" className="px-4 py-3 font-extrabold">Receita</th>
+            <th scope="col" className="px-4 py-3 font-extrabold">Disponibilidade</th>
+            <th scope="col" className="px-4 py-3 font-extrabold">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#e8e8e2]">
+          {gourmets.map((gourmet) => (
+            <tr key={gourmet.id} className="align-top hover:bg-[#fcfcfa]">
+              <td className="px-4 py-3">
+                <p className="font-semibold">{gourmet.name}</p>
+                {gourmet.tag && <p className="mt-1 text-xs text-[#77776e]">{gourmet.tag}</p>}
+                <p className="mt-1 max-w-md text-xs leading-5 text-[#77776e]">{gourmet.description}</p>
+              </td>
+              <td className="px-4 py-3 text-xs">
+                {gourmet.sizes.map((size) => (
+                  <p key={size.sizeItemId} className="mb-1 last:mb-0">
+                    {size.sizeName}: {currency.format(size.priceCents / 100)}
+                    {!size.available && " · inativo"}
+                  </p>
+                ))}
+              </td>
+              <td className="max-w-sm px-4 py-3 text-xs text-[#55554e]">
+                {gourmet.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")}
+              </td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${gourmet.deletedAt ? "bg-slate-100 text-slate-700" : gourmet.available ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                  {gourmet.deletedAt ? "Arquivado" : gourmet.available ? "Ativo" : "Pausado"}
+                </span>
+              </td>
+              <td className="px-4 py-3">
+                {!gourmet.deletedAt && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button type="button" disabled={Boolean(mutating)} onClick={() => onEdit(gourmet)} className="inline-flex items-center gap-1 text-xs font-bold text-[#8b1a2e] hover:underline disabled:opacity-50">
+                      <PencilSimpleIcon aria-hidden="true" size={15} /> Editar
+                    </button>
+                    <button type="button" disabled={Boolean(mutating)} onClick={() => void onToggle(gourmet)} className="inline-flex items-center gap-1 text-xs font-bold text-[#55554e] hover:underline disabled:opacity-50">
+                      {gourmet.available ? <PauseIcon aria-hidden="true" size={15} /> : <PlayIcon aria-hidden="true" size={15} />}
+                      {gourmet.available ? "Pausar" : "Reativar"}
+                    </button>
+                    <button type="button" disabled={Boolean(mutating)} onClick={() => void onArchive(gourmet)} className="inline-flex items-center gap-1 text-xs font-bold text-red-800 hover:underline disabled:opacity-50">
+                      <ArchiveBoxIcon aria-hidden="true" size={15} /> Excluir
+                    </button>
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

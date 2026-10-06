@@ -11,7 +11,11 @@ import {
   combos,
   products,
 } from "@/features/storefront/presentation/menu/menu-data";
-import type { MenuCombo } from "@/features/storefront/domain/menu-types";
+import type {
+  MenuCombo,
+  MenuGourmet,
+  MenuOrderProduct,
+} from "@/features/storefront/domain/menu-types";
 import { ProductCatalog } from "@/features/storefront/presentation/menu/product-catalog";
 import { ProductHero } from "@/features/storefront/presentation/menu/product-hero";
 import { SiteHeader } from "@/features/storefront/presentation/menu/site-header";
@@ -32,16 +36,16 @@ type ApiStatus = "checking" | "online" | "offline";
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [cartCount, setCartCount] = useState(0);
-  const [selectedCombo, setSelectedCombo] = useState<MenuCombo | null>(null);
-  const [selectedSizeId, setSelectedSizeId] = useState<string | null>(null);
-  const [sizeSelectionRequest, setSizeSelectionRequest] = useState(0);
+  const [selectedProduct, setSelectedProduct] =
+    useState<MenuOrderProduct | null>(null);
   const [menuCombos, setMenuCombos] = useState<MenuCombo[]>([]);
+  const [menuGourmets, setMenuGourmets] = useState<MenuGourmet[]>([]);
   const [builderCatalog, setBuilderCatalog] =
     useState<BuilderCatalogData | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [catalogError, setCatalogError] = useState(false);
   const [storeStatus, setStoreStatus] = useState<StoreStatus | null>(null);
-  const heroSlideCount = 2 + Math.min(2, menuCombos.length);
+  const heroSlideCount = Math.max(1, menuCombos.length + menuGourmets.length);
 
   useEffect(() => {
     let active = true;
@@ -77,10 +81,21 @@ export default function Home() {
             };
           }),
         );
+        setMenuGourmets(
+          catalog.gourmets.map((gourmet, index) => {
+            const visual = products[index % products.length];
+            return {
+              ...gourmet,
+              image: gourmet.image || visual.image,
+              imageAlt: gourmet.imageAlt || visual.imageAlt || gourmet.name,
+            };
+          }),
+        );
         setBuilderCatalog(toBuilderCatalog(catalog));
         setCatalogError(false);
       } else {
         setMenuCombos([]);
+        setMenuGourmets([]);
         setBuilderCatalog(null);
         setCatalogError(true);
       }
@@ -124,18 +139,8 @@ export default function Home() {
     );
   }
 
-  function chooseCombo(combo: MenuCombo) {
-    setSelectedCombo(combo);
-    setSelectedSizeId(null);
-    document
-      .getElementById("monte-seu-acai")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function chooseFreeSize(sizeId: string) {
-    setSelectedCombo(null);
-    setSelectedSizeId(sizeId);
-    setSizeSelectionRequest((request) => request + 1);
+  function chooseProduct(product: MenuOrderProduct) {
+    setSelectedProduct(product);
     document
       .getElementById("monte-seu-acai")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -153,7 +158,7 @@ export default function Home() {
           activeSlide={activeSlide}
           products={products}
           combos={menuCombos}
-          catalog={builderCatalog}
+          gourmets={menuGourmets}
           storeIsOpen={storeIsOpen}
           onSelectSlide={setActiveSlide}
           onChangeSlide={changeSlide}
@@ -161,11 +166,9 @@ export default function Home() {
         {builderCatalog ? (
           <ProductCatalog
             combos={menuCombos}
-            catalog={builderCatalog}
-            products={products}
+            gourmets={menuGourmets}
               storeIsOpen={storeIsOpen}
-            onChooseCombo={chooseCombo}
-            onChooseSize={chooseFreeSize}
+            onChooseProduct={chooseProduct}
             apiStatus={apiStatus}
             catalogError={catalogError}
           />
@@ -182,10 +185,8 @@ export default function Home() {
         )}
         {builderCatalog ? (
           <AcaiBuilder
-            selectedCombo={selectedCombo}
-            initialSizeId={selectedSizeId}
-            sizeSelectionRequest={sizeSelectionRequest}
-            onClearCombo={() => setSelectedCombo(null)}
+            selectedProduct={selectedProduct}
+            onClearProduct={() => setSelectedProduct(null)}
             onCartCountChange={setCartCount}
             catalog={builderCatalog}
             storeIsOpen={storeIsOpen}

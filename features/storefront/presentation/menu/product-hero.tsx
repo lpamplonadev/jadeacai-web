@@ -6,12 +6,8 @@ import {
 } from "@phosphor-icons/react";
 import {
   currency,
-  type BuilderCatalogData,
 } from "@/features/storefront/domain/acai-builder-data";
-import type {
-  MenuCombo,
-  Product,
-} from "@/features/storefront/domain/menu-types";
+import type { MenuCombo, MenuGourmet, Product } from "@/features/storefront/domain/menu-types";
 
 type HeroPromotion = {
   name: string;
@@ -31,123 +27,67 @@ type ProductHeroProps = {
   activeSlide: number;
   products: Product[];
   combos: MenuCombo[];
-  catalog: BuilderCatalogData | null;
+  gourmets: MenuGourmet[];
   storeIsOpen: boolean;
   onSelectSlide: (index: number) => void;
   onChangeSlide: (direction: number) => void;
 };
 
-function inclusionLabel(
-  count: number,
-  singular: string,
-  plural: string,
-  suffix: string,
-) {
-  if (count <= 0) return null;
-  return `${count} ${count === 1 ? singular : plural}${suffix}`;
-}
-
-function visibleLabels(labels: (string | null)[]) {
-  return labels.filter((label): label is string => label !== null);
-}
-
 export function ProductHero({
   activeSlide,
   products,
   combos,
-  catalog,
+  gourmets,
   storeIsOpen,
   onSelectSlide,
   onChangeSlide,
 }: ProductHeroProps) {
-  const flavorNames = catalog?.flavors.map((flavor) => flavor.name) ?? [];
-  const startingPrice = catalog?.cupSizes.length
-    ? Math.min(...catalog.cupSizes.map((size) => size.price))
-    : null;
-  const freeInclusions = catalog
-    ? visibleLabels([
-        inclusionLabel(
-          catalog.includedToppings,
-          "acompanhamento",
-          "acompanhamentos",
-          catalog.includedToppings === 1 ? " incluído" : " incluídos",
-        ),
-        inclusionLabel(
-          catalog.includedFruits,
-          "fruta",
-          "frutas",
-          catalog.includedFruits === 1 ? " incluída" : " incluídas",
-        ),
-      ])
-    : [];
-  const freeDescription = catalog
-    ? `Escolha entre ${flavorNames.join(" ou ") || "os sabores disponíveis"}.${freeInclusions.length ? ` ${freeInclusions.join(" e ")}.` : ""} Personalize e veja o valor antes de pedir.`
-    : "Carregando as opções e preços atuais do cardápio.";
-  const freePriceLabel =
-    startingPrice === null
-      ? "Consulte as opções do cardápio"
-      : `Açaí livre a partir de ${currency.format(startingPrice)}`;
-
   const promotions: HeroPromotion[] = [
-    {
-      name: flavorNames[0] ?? "Açaí livre",
-      badge: "Açaí livre",
-      headline: "Seu açaí,",
-      highlight: "seu jeito.",
-      description: freeDescription,
-      ctaLabel: "Montar meu açaí",
-      href: "#monte-seu-acai",
-      priceLabel: freePriceLabel,
-      image: products[0].image,
-      imageAlt: products[0].imageAlt,
-      imageBadge: catalog ? freeInclusions.join(" · ") : "Cardápio atualizado",
-    },
-    {
-      name: flavorNames[1] ?? "Personalize seu açaí",
-      badge: "Monte do seu jeito",
-      headline: "Escolha cada",
-      highlight: "detalhe.",
-      description:
-        "Combine os sabores de açaí, acompanhamentos, calda, frutas e extras no montador.",
-      ctaLabel: "Personalizar meu açaí",
-      href: "#monte-seu-acai",
-      priceLabel: freePriceLabel,
-      image: products[1].image,
-      imageAlt: products[1].imageAlt,
-      imageBadge: flavorNames.join(" ou ") || "Opções do cardápio",
-    },
-    ...combos.slice(0, 2).map((combo) => {
-      const includedItems = visibleLabels([
-        inclusionLabel(
-          combo.includedToppings,
-          "adicional",
-          "adicionais",
-          " grátis",
-        ),
-        inclusionLabel(combo.includedFruits, "fruta", "frutas", " grátis"),
-        inclusionLabel(combo.includedExtras, "extra", "extras", " grátis"),
-      ]);
-      return {
-        name: combo.name,
-        badge: combo.tag,
-        headline: includedItems.some((item) => item.includes("fruta"))
-          ? `${combo.name}, com fruta`
-          : `${combo.name} pra começar`,
-        highlight: `por ${combo.price}.`,
-        description: includedItems.length
-          ? includedItems.join(" + ")
-          : "Personalize os complementos no configurador.",
-        ctaLabel: `Ver ${combo.name}`,
-        href: "#catalogo",
-        priceLabel: `${combo.size} · ${combo.price}`,
-        image: combo.image,
-        imageAlt: combo.imageAlt,
-        imageBadge: includedItems.join(" · "),
-      };
-    }),
+    ...combos.map((combo) => ({
+      name: combo.name,
+      badge: combo.tag || "Combo",
+      headline: combo.name,
+      highlight: "para compartilhar.",
+      description: `${combo.includedToppings} acompanhamentos incluídos. Uma combinação completa, pronta para personalizar.`,
+      ctaLabel: `Ver ${combo.name}`,
+      href: "#catalogo",
+      priceLabel: `${combo.size} · ${combo.price}`,
+      image: combo.image,
+      imageAlt: combo.imageAlt,
+      imageBadge: combo.tag,
+    })),
+    ...gourmets.map((gourmet) => ({
+      name: gourmet.name,
+      badge: gourmet.tag || "Gourmet",
+      headline: gourmet.name,
+      highlight: "receita da casa.",
+      description: gourmet.description,
+      ctaLabel: `Ver ${gourmet.name}`,
+      href: "#catalogo",
+      priceLabel: gourmet.sizes.length
+        ? `A partir de ${currency.format(Math.min(...gourmet.sizes.map((size) => size.priceCents)) / 100)}`
+        : "Consulte as opções do cardápio",
+      image: gourmet.image,
+      imageAlt: gourmet.imageAlt,
+      imageBadge: gourmet.tag || "Receita da casa",
+    })),
   ];
-
-  const promotion = promotions[activeSlide] ?? promotions[0];
+  const fallbackImage = products[0];
+  const fallbackPromotion: HeroPromotion = {
+    name: "Cardápio Jade",
+    badge: "Feito na hora",
+    headline: "Combinações",
+    highlight: "da casa.",
+    description: "Receitas preparadas com açaí cremoso e ingredientes selecionados.",
+    ctaLabel: "Ver cardápio",
+    href: "#catalogo",
+    priceLabel: "Confira tamanhos e preços",
+    image: fallbackImage.image,
+    imageAlt: fallbackImage.imageAlt,
+    imageBadge: "Cardápio atualizado",
+  };
+  const slideCount = Math.max(1, promotions.length);
+  const promotion = promotions[activeSlide % slideCount] ?? fallbackPromotion;
 
   return (
     <section
@@ -158,8 +98,8 @@ export function ProductHero({
         <div className="relative z-10 order-2 pb-2 md:order-1 md:py-8">
           <p className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-petal sm:text-sm">
             <span className="h-px w-8 bg-petal" />
-            {activeSlide < 2
-              ? "Açaí livre · monte sua combinação"
+            {gourmets.some((gourmet) => gourmet.name === promotion.name)
+              ? "Receitas Gourmet Jade"
               : "Combos Jade · escolha o seu"}
           </p>
           <span className="mb-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-bold text-coral shadow-sm">
@@ -205,9 +145,9 @@ export function ProductHero({
           <div className="mt-10 flex items-center gap-4">
             <div
               className="flex items-center gap-1.5"
-              aria-label={`Destaque ${activeSlide + 1} de ${promotions.length}`}
+              aria-label={`Destaque ${activeSlide + 1} de ${slideCount}`}
             >
-              {promotions.map((item, index) => (
+              {(promotions.length ? promotions : [fallbackPromotion]).map((item, index) => (
                 <button
                   key={item.name}
                   type="button"

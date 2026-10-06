@@ -4,12 +4,12 @@
 
 This repository contains the customer-facing Jade's Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. Store hours, public open/closed status, the story section, and WhatsApp number are managed through Admin general settings. Closed status disables order actions in the storefront and is enforced again by the backend. The current purchase path is:
 
-1. The storefront loads active catalog items, combos, and pricing rules from the public API.
-2. The ecommerce catalog offers active açaí livre sizes and combos with search, category/price filters, promotion filter, and sorting. A combo or free size opens the configurator.
-3. The customer can configure combo portions one by one and add up to 100 configured açaís to one in-memory cart, then enter customer, delivery, and payment details.
+1. The storefront loads active catalog items, Combos, Gourmets, and pricing rules from the public API.
+2. The ecommerce catalog offers Combos and fixed-recipe Gourmets with search, category/price filters, promotion filter, and sorting. A Gourmet requires choosing one of its configured sizes and prices.
+3. The customer can configure Combo portions one by one or add a fixed-recipe Gourmet, then add up to 100 products to one in-memory cart before entering delivery and payment details.
 4. Submission opens a prefilled WhatsApp message and sends one multi-item order to the public orders API.
 
-The frontend also has a protected Admin for dashboard metrics, order search/details/status changes, and catalog item/combo management. Admin requests pass through a Next.js server-side proxy, which verifies the signed session before attaching the private API key. API availability and order persistence depend on the backend. Builder/cart state lives in React memory and resets on reload; orders are stored by the API, while WhatsApp remains the customer notification/confirmation channel.
+The frontend also has a protected Admin for dashboard metrics, order search/details/status changes, and catalog item, Combo, and Gourmet management. Admin requests pass through a Next.js server-side proxy, which verifies the signed session before attaching the private API key. API availability and order persistence depend on the backend. Builder/cart state lives in React memory and resets on reload; orders are stored by the API, while WhatsApp remains the customer notification/confirmation channel.
 
 Default store hours use `America/Sao_Paulo`: Tuesday-Friday 19:00-23:00, Saturday-Sunday 17:00-23:00, Monday closed. Admin can force the store open or closed; returning to “Automático” restores the weekly schedule.
 
@@ -53,13 +53,12 @@ The hero and catalog are the landing experience. Header/catalog buttons use in-p
 - `app/layout.tsx`: root document wrapper, locale, metadata, and fonts.
 - `app/globals.css`: Tailwind imports, design tokens, palette variables, base styles.
 - `components/menu/menu-data.tsx`: `Product` and `MenuCombo` types and local campaign imagery/examples; active menu records are fetched from the backend.
-- `components/menu/product-hero.tsx`: four promotional slides (two açaí livre, two combos), their copy, badges, imagery, CTAs, and carousel controls.
-- `components/menu/product-catalog.tsx`: ecommerce catalog with search, category/promotion/price filters, sorting, and all active free sizes and combos; selections open the builder.
-- `components/menu/acai-builder.tsx`: API-backed builder options, individual combo-portion configuration, multi-item cart (up to 100), estimates, checkout, WhatsApp message, and API order submission.
+- `components/menu/product-hero.tsx`: promotional slides built from active Combos and Gourmets, including copy, badges, imagery, CTAs, and carousel controls.
+- `components/menu/product-catalog.tsx`: ecommerce catalog with search, category/promotion/price filters, sorting, Combos, and fixed-recipe Gourmets with size-specific prices.
+- `components/menu/acai-builder.tsx`: API-backed Combo customization, fixed Gourmet recipe display, multi-item cart (up to 100), estimates, checkout, WhatsApp message, and API order submission.
 - `components/menu/acai-builder-data.ts`: builder types, fallback values, currency formatter, and combo-to-size mapping; live options and commercial rules are converted from the public catalog in `lib/jade-api.ts`.
 - `components/menu/choice-checklist.tsx`: reusable multi-select checklist.
 - `components/menu/order-summary.tsx`: removable cart lines, total, combo-portion progress, “continue to delivery” action, and mobile floating total bar.
-- `components/menu/combo-limit-dialog.tsx`: accessible confirmation dialog when a combo allowance is exceeded.
 - `components/menu/delivery-checkout-form.tsx`: controlled customer, delivery-address, payment, change, and notes fields; browser-native required-field validation.
 - `components/menu/site-header.tsx`: landing header, Admin portal link, cart shortcut, and item count.
 - `components/menu/brand-footer.tsx`: landing footer.
@@ -90,32 +89,31 @@ Tokens are defined in `app/globals.css` under Tailwind v4 `@theme inline`. Avoid
 
 ## 6. Hero and catalog behavior
 
-The hero builds four promotions in `product-hero.tsx`:
+The hero builds promotions from active Combo and Gourmet records; all CTAs target `#catalogo`.
 
-- Slides 0 and 1 are açaí livre offers; their CTA target is `#monte-seu-acai`.
-- Slides 2 and 3 are generated from `combos.slice(0, 2)`; their CTA target is `#catalogo`.
-- The dots and arrows change the active slide. `app/page.tsx` currently uses `heroSlideCount = 4`; update that value or derive it from shared promotions if the count changes.
-- Product images used by the hero come from `products`; combo cards and combo hero slides use `combos`.
+- The dots and arrows change the active slide. The slide count is derived from the loaded products.
+- Fallback imagery comes from `products`; Combo and Gourmet slides use their catalog images when available.
 - Hero image containers stay square (`1:1`) at every breakpoint. The source image fills the frame edge to edge with `object-cover`; non-square source photos are cropped to preserve the fixed frame. Keep the rounded clipping and foreground badges when changing the hero presentation.
 
-The catalog displays active free sizes and combos with search, category and price filters, a promotion filter, and sorting. Selecting a card opens an accessible details dialog with a larger image, descriptive copy, price, and combo composition/inclusions. Its CTA selects a free size for building or loads a combo and its composition into the builder. Flavors/toppings/etc. remain builder choices rather than standalone purchasable products. These records come from the backend catalog.
+The catalog displays active Combos and Gourmets with search, category and price filters, a promotion filter, and sorting. Selecting a card opens an accessible details dialog with a larger image, description, and price. A Gourmet includes its fixed recipe and size-price choices; a Combo opens its customization flow. Catalog records come from separate backend collections.
 
 The builder can add up to 100 configured açaís to one cart and remove individual lines. A combo can include multiple sizes with quantities; each portion is configured separately, in sequence, and becomes its own cart/order line. The cart and checkout form are client-memory state and are cleared on reload.
 
 ## 7. Catalog source and commercial rules
 
-The PostgreSQL catalog is the source of truth for active sizes, flavors, combos, toppings, sauces, condiment positions, fruits, extras, and public pricing rules. Combos carry a `category` of `combo` or `gourmet`, assigned in the Admin catalog editor; existing combos default to `combo`. The backend migration seeds the initial records. Admin changes are read by the public catalog endpoint and converted by `lib/jade-api.ts`; `acai-builder-data.ts` contains fallback values for when catalog data is incomplete, not the operational source of truth.
+The PostgreSQL catalog is the source of truth for active sizes, flavors, Combos, Gourmets, toppings, sauces, condiment positions, fruits, extras, and public pricing rules. Combos and Gourmets are stored in separate tables with separate Admin routes. Each Gourmet has one description, a fixed recipe, and one or more size-price options. The split migration moves existing Gourmet IDs, recipes, and variants without losing order references. `acai-builder-data.ts` contains fallback values for catalog configuration, not the operational source of truth.
 
-Combo records include one or more sizes with quantities, package price, inclusions, and configured items; total component quantity is limited to 100. Each portion is configured separately in the builder. The package price is split across portion lines in cents, with any remainder assigned to the first portions so the line totals exactly match the combo price. Exceeding an individual portion's topping, fruit, or extra allowance asks the customer to switch that açaí to free mode. The delivery fee and builder allowances are estimates from the current catalog rules. Confirm all prices and inclusions with the business before launch; do not copy commercial figures from older handoff revisions.
+Combo records include one or more sizes with quantities, package price, inclusions, and configured items; total component quantity is limited to 100. Each portion is configured separately in the builder. The package price is split across portion lines in cents, with any remainder assigned to the first portions so the line totals exactly match the combo price. Additional toppings, fruits, and extras are charged at their configured price. Gourmets have a fixed recipe and explicit size-price options. The delivery fee and Combo allowances are estimates from the current catalog rules. Confirm all prices and inclusions with the business before launch; do not copy commercial figures from older handoff revisions.
 
 ## 8. Current checkout and WhatsApp contract
 
 The builder has two steps, both controlled in `acai-builder.tsx`:
 
-### Step 1: açaí configuration
+### Step 1: product selection and customization
 
-- Requires a flavor and size before adding a configured açaí to the cart.
-- A combo advances through its configured sizes; each cup has its own flavor/customizations and estimated share of the package price.
+- Requires selecting a Combo or Gourmet before adding a product to the cart.
+- A Combo advances through its configured sizes; each cup has its own flavor/customizations and estimated share of the package price.
+- A Gourmet loads its saved flavor and fixed recipe, then uses the price for the selected size without ingredient customization.
 - Includes toppings, one free sauce (or no sauce), condiment placement, fruits, and extras.
 - Estimated total includes all cart lines, their customizations, and one delivery fee per order.
 - The mobile floating total is rendered by `OrderSummary`; it hides when the summary panel enters the viewport and reappears when scrolling upward.
@@ -124,7 +122,7 @@ The builder has two steps, both controlled in `acai-builder.tsx`:
 
 `DeliveryCheckoutForm` requires name, a valid Brazilian mobile phone, postal code, street, number, neighborhood, and payment method. The phone input formats as `(DD) 9XXXX-XXXX` and validates an active DDD and the ninth-digit mobile prefix; the backend repeats the validation and stores digits only. Complement, reference, and notes are optional. Payment methods are Pix, cash, and card at delivery. For cash, an optional “Preciso de troco” checkbox reveals a required amount input whose HTML `min` is the current order total.
 
-The customer can add up to 100 configured açaís; each cart line carries its own configuration and estimated subtotal. Combo portions are added one at a time so flavor and customizations can differ per cup. Checkout builds a Portuguese multiline WhatsApp message with all lines, totals, delivery details, payment, and (when applicable) the change request, then opens `https://wa.me/<number>?text=<encoded message>`. The frontend also sends one `CreateOrderRequest` with `items[]` to `POST /api/v1/orders`. The API persists the submitted estimated amounts but does not currently recalculate prices or validate selected catalog IDs; those values are not trusted charge amounts.
+The customer can add up to 100 products; each cart line carries its configuration and estimated subtotal. Combo portions are added one at a time so flavor and customizations can differ per cup. Gourmet lines carry both their Combo-independent `gourmetId` and selected `sizeId`. Checkout builds a Portuguese multiline WhatsApp message with all lines, totals, delivery details, payment, and (when applicable) the change request, then opens `https://wa.me/<number>?text=<encoded message>`. The frontend also sends one `CreateOrderRequest` with `items[]` to `POST /api/v1/orders`. The API persists the submitted estimated amounts but does not currently recalculate prices or validate selected catalog IDs; those values are not trusted charge amounts.
 
 The WhatsApp business number comes from the public store settings response; it is edited in Admin general settings. `window.open` is client-only; the handler remains in a Client Component and only navigates to WhatsApp after the API accepts the order.
 
@@ -205,19 +203,19 @@ Catalog changes already flow to the public storefront through `/api/v1/menu/cata
 - Keep Tailwind v4 design tokens and the current crimson/blush identity.
 - Avoid changing visual layout when the request is content-only.
 - For business-price changes, update the typed data in one place and verify catalog, hero, builder selection, summary, and WhatsApp message.
-- After UI changes run `npm run lint` and `npx tsc --noEmit`; test mobile and desktop browser flows for combo selection, free mode, validation, summary, and WhatsApp message construction.
+- After UI changes run `npm run lint` and `npx tsc --noEmit`; test mobile and desktop browser flows for Combo/Gourmet selection, size-price choice, validation, summary, and WhatsApp message construction.
 
 ## 12. Manual smoke-test checklist
 
 Run these in the browser after changing builder, combo, or checkout behavior:
 
-1. On first load, confirm the public catalog loads and the builder has no flavor/size choices selected; with an empty cart, the estimate includes only the per-order delivery rule.
-2. Confirm search, category, promotion, price-range, and sort filters work and that active free sizes and combos appear as cards.
-3. Select a free size and a combo in separate configurations. Confirm size/price/inclusions load correctly, each can be added to the cart, and the cart can hold multiple lines.
+1. On first load, confirm the public catalog loads and the builder asks for a product; with an empty cart, the estimate includes only the per-order delivery rule.
+2. Confirm search, category, promotion, price-range, and sort filters work and that active Combos and Gourmets appear as cards.
+3. Select a Combo and a Gourmet. Confirm Combo inclusions and Gourmet recipe/size-specific prices load correctly, and the cart can hold multiple lines.
 4. Configure a combo containing 2 × 770 ml and 1 × 500 ml. Confirm the configurator advances through each size, permits different flavors/customizations, and the cart total equals the package price plus delivery.
-5. Exceed a combo allowance for toppings, fruit, and extras. Cancel once to ensure the combo remains; confirm once to ensure the attempted item is added and mode becomes açaí livre.
+5. Exceed a Combo allowance for toppings, fruit, and extras. Confirm each additional item is charged at its configured price and the selected Combo remains active.
 6. Change sauces; verify exactly one sauce or “Sem calda” is selected. Select condiment positions and confirm any catalog surcharge is reflected.
-7. Try to add or continue without flavor or size; confirm validation blocks the incomplete configuration. Verify the 100-line cart limit and line removal.
+7. Try to add or continue without selecting a product or required Combo flavor; confirm validation blocks the incomplete configuration. Verify the 100-line cart limit and line removal.
 8. On checkout, submit empty fields; native validation should block submission. Fill required fields, select a payment method, and verify Back preserves entered delivery details.
 9. Select cash and enable change. Confirm the change field appears, is required, and cannot be less than the current total. Switch to another payment method and confirm the field disappears.
 10. Capture/intercept the WhatsApp URL and API request. Verify every cart line, per-order delivery fee, total estimate, address, payment method, and change request are included; verify the API failure message still leaves WhatsApp available.

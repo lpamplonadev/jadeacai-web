@@ -18,15 +18,6 @@ export type CatalogItem = {
   deletedAt: string | null;
 };
 
-export type CatalogComboCategory = "combo" | "gourmet";
-
-export type CatalogComboGourmetSize = {
-  sizeItemId: string;
-  sizeName: string;
-  priceCents: number;
-  available: boolean;
-};
-
 export type CatalogComboItem = {
   itemId: string;
   itemKey: string;
@@ -39,10 +30,7 @@ export type CatalogComboItem = {
 export type CatalogCombo = {
   id: string;
   comboKey: string;
-  category: CatalogComboCategory;
   name: string;
-  description: string;
-  gourmetSizes: CatalogComboGourmetSize[];
   sizeItemId: string;
   sizeName: string;
   priceCents: number;
@@ -58,10 +46,32 @@ export type CatalogCombo = {
   items: CatalogComboItem[];
 };
 
-export type CatalogEditor =
+export type CatalogGourmetSize = {
+  sizeItemId: string;
+  sizeName: string;
+  priceCents: number;
+  available: boolean;
+};
+
+export type CatalogGourmet = {
+  id: string;
+  gourmetKey: string;
+  name: string;
+  description: string;
+  tag: string;
+  imageUrl: string;
+  imageAlt: string;
+  available: boolean;
+  sortOrder: number;
+  deletedAt: string | null;
+  items: CatalogComboItem[];
+  sizes: CatalogGourmetSize[];
+};
+
+export type CatalogEntryEditor =
   | { type: "item"; item?: CatalogItem }
-  | {
-      type: "combo";
-      combo?: CatalogCombo;
-      initialCategory?: CatalogComboCategory;
-    };
+  | { type: "combo"; combo?: CatalogCombo };
+
+export type CatalogEditor =
+  | CatalogEntryEditor
+  | { type: "gourmet"; gourmet?: CatalogGourmet };

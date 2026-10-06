@@ -25,10 +25,7 @@ export type MenuCombo = {
   id: string;
   key?: string;
   sizeId?: string;
-  category?: "combo" | "gourmet";
   name: string;
-  description?: string;
-  gourmetSizes?: MenuGourmetSize[];
   size: string;
   price: string;
   priceCents: number;
@@ -39,4 +36,33 @@ export type MenuCombo = {
   image: string;
   imageAlt: string;
   items?: MenuComboItem[];
+};
+
+export type MenuGourmet = {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  tag: string;
+  image: string;
+  imageAlt: string;
+  items: MenuComboItem[];
+  sizes: MenuGourmetSize[];
+};
+
+export type MenuOrderProduct = {
+  type: "combo" | "gourmet";
+  id: string;
+  name: string;
+  sizeId: string;
+  size: string;
+  priceCents: number;
+  includedToppings: number;
+  includedFruits: number;
+  includedExtras: number;
+  tag: string;
+  image: string;
+  imageAlt: string;
+  description?: string;
+  items: MenuComboItem[];
 };
