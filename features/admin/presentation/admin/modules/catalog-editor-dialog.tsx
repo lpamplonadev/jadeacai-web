@@ -5,7 +5,6 @@ import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
 import type {
-  CatalogComboCategory,
   CatalogEditor,
   CatalogItem,
   CatalogItemKind,
@@ -30,6 +29,27 @@ export const catalogKindLabels: Record<CatalogItemKind, string> = {
 
 const inputClassName =
   "min-h-11 w-full rounded-md border border-[#d6d6ce] bg-white px-3 text-sm outline-none focus:border-[#8b1a2e]";
+const defaultGourmetDescription =
+  "A cremosidade do açaí encontra a doçura do doce de leite e do leite condensado, com banana e um toque de canela. Uma combinação irresistível para transformar sua pausa em um momento especial.";
+
+function getBanoffeIngredients(items: CatalogItem[]) {
+  const normalize = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const matches = [
+    (name: string, kind: CatalogItemKind) =>
+      kind === "flavor" && normalize(name) === "acai de banana",
+    (name: string, kind: CatalogItemKind) =>
+      kind === "fruit" && normalize(name) === "banana",
+    (name: string) => normalize(name).includes("doce de leite"),
+    (name: string) => normalize(name).includes("leite condensado"),
+    (name: string) => normalize(name).includes("canela"),
+  ];
+  const selected = matches.flatMap((matchesItem) => {
+    const match = items.find((item) => matchesItem(item.name, item.kind));
+    return match ? [[match.id, 1] as const] : [];
+  });
+  return Object.fromEntries(selected);
+}
 
 function toPriceInput(priceCents: number) {
   return (priceCents / 100).toFixed(2);
@@ -52,6 +72,7 @@ export function CatalogEditorDialog({
   const combo = editor.type === "combo" ? editor.combo : undefined;
   const initialCategory =
     editor.type === "combo" ? (editor.initialCategory ?? "combo") : "combo";
+  const editorCategory = combo?.category ?? initialCategory;
   const linkedItemIDs = new Set(
     (combo?.items ?? []).map((comboItem) => comboItem.itemId),
   );
@@ -68,7 +89,13 @@ export function CatalogEditorDialog({
     (catalogItem) => catalogItem.kind !== "size",
   );
   const [kind, setKind] = useState<CatalogItemKind>(item?.kind ?? "topping");
-  const [name, setName] = useState(item?.name ?? combo?.name ?? "");
+  const [name, setName] = useState(
+    item?.name ?? combo?.name ?? (editorCategory === "gourmet" ? "Banoffe" : ""),
+  );
+  const [description, setDescription] = useState(
+    combo?.description?.trim() ||
+      (editorCategory === "gourmet" ? defaultGourmetDescription : ""),
+  );
   const [price, setPrice] = useState(
     toPriceInput(item?.priceCents ?? combo?.priceCents ?? 0),
   );
@@ -87,7 +114,14 @@ export function CatalogEditorDialog({
       }));
     return linkedSizes?.length
       ? linkedSizes
-      : [{ itemId: combo?.sizeItemId ?? "", quantity: 1 }];
+      : [
+          {
+            itemId:
+              combo?.sizeItemId ??
+              (editorCategory === "gourmet" ? (sizeItems[0]?.id ?? "") : ""),
+            quantity: 1,
+          },
+        ];
   });
   const [includedToppings, setIncludedToppings] = useState(
     String(combo?.includedToppings ?? 0),
@@ -98,9 +132,8 @@ export function CatalogEditorDialog({
   const [includedExtras, setIncludedExtras] = useState(
     String(combo?.includedExtras ?? 0),
   );
-  const [category, setCategory] = useState<CatalogComboCategory>(
-    combo?.category ?? initialCategory,
-  );
+  const category = editorCategory;
+  const isGourmet = category === "gourmet";
   const [tag, setTag] = useState(combo?.tag ?? "");
   const [imageUrl, setImageUrl] = useState(combo?.imageUrl ?? "");
   const [imageAlt, setImageAlt] = useState(combo?.imageAlt ?? "");
@@ -109,11 +142,16 @@ export function CatalogEditorDialog({
   const [localImagePreview, setLocalImagePreview] = useState("");
   const [imageUploadError, setImageUploadError] = useState("");
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>(
-    Object.fromEntries(
+    () =>
+      combo
+        ? Object.fromEntries(
       (combo?.items ?? [])
         .filter((comboItem) => comboItem.kind !== "size")
         .map((comboItem) => [comboItem.itemId, comboItem.quantity]),
-    ),
+          )
+        : editorCategory === "gourmet"
+          ? getBanoffeIngredients(activeItems)
+          : {},
   );
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -179,8 +217,30 @@ export function CatalogEditorDialog({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
     setError("");
+
+    if (editor.type === "combo" && category === "gourmet") {
+      if (!description.trim()) {
+        setError("Informe uma descrição para apresentar o Gourmet na loja.");
+        return;
+      }
+      if (!selectedSizes[0]?.itemId) {
+        setError("Selecione o tamanho do Gourmet.");
+        return;
+      }
+      if (
+        !activeItems.some(
+          (catalogItem) =>
+            catalogItem.kind === "flavor" &&
+            selectedItems[catalogItem.id] !== undefined,
+        )
+      ) {
+        setError("Selecione o sabor de açaí que faz parte da receita.");
+        return;
+      }
+    }
+
+    setSaving(true);
 
     const endpoint =
       editor.type === "item"
@@ -213,11 +273,13 @@ export function CatalogEditorDialog({
         : {
             name: name.trim(),
             category,
+            description: description.trim(),
             sizeItemId: comboSizes[0]?.itemId ?? "",
             priceCents,
-            includedToppings: Number(includedToppings),
-            includedFruits: Number(includedFruits),
-            includedExtras: Number(includedExtras),
+            includedToppings:
+              category === "gourmet" ? 0 : Number(includedToppings),
+            includedFruits: category === "gourmet" ? 0 : Number(includedFruits),
+            includedExtras: category === "gourmet" ? 0 : Number(includedExtras),
             tag,
             imageUrl,
             imageAlt,
@@ -391,7 +453,7 @@ export function CatalogEditorDialog({
         ) : (
           <>
             <label className="block space-y-1.5 text-sm font-bold">
-              Nome do combo
+              {isGourmet ? "Nome do Gourmet" : "Nome do combo"}
               <input
                 required
                 maxLength={120}
@@ -400,19 +462,28 @@ export function CatalogEditorDialog({
                 className={inputClassName}
               />
             </label>
-            <label className="block space-y-1.5 text-sm font-bold">
-              Categoria da loja
-              <select
-                value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value as CatalogComboCategory)
-                }
-                className={inputClassName}
-              >
-                <option value="combo">Combo</option>
-                <option value="gourmet">Gourmet</option>
-              </select>
-            </label>
+            {isGourmet ? (
+              <>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-[#8b1a2e]">
+                  Gourmet · receita fixa
+                </p>
+                <label className="block space-y-1.5 text-sm font-bold">
+                  Descrição para o cardápio
+                  <textarea
+                    required
+                    maxLength={1200}
+                    rows={4}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    className={`${inputClassName} py-3 leading-5`}
+                  />
+                </label>
+              </>
+            ) : (
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[#8b1a2e]">
+                Combo personalizável
+              </p>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">
                 Preço (R$)
@@ -427,7 +498,7 @@ export function CatalogEditorDialog({
                 />
               </label>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            {!isGourmet && <div className="grid gap-4 sm:grid-cols-3">
               <label className="block space-y-1.5 text-sm font-bold">
                 Acompanhamentos incluídos
                 <input
@@ -458,9 +529,9 @@ export function CatalogEditorDialog({
                   className={inputClassName}
                 />
               </label>
-            </div>
+            </div>}
             <label className="block space-y-1.5 text-sm font-bold">
-              Destaque
+              {isGourmet ? "Selo (opcional)" : "Destaque"}
               <input
                 maxLength={80}
                 value={tag}
@@ -470,20 +541,25 @@ export function CatalogEditorDialog({
             </label>
             <fieldset className="space-y-3">
               <legend className="text-sm font-black">
-                Açaís incluídos no combo
+                {isGourmet ? "Tamanho do Gourmet" : "Açaís incluídos no combo"}
               </legend>
               <p className="text-xs leading-5 text-[#77776e]">
-                Adicione os tamanhos e quantidades. Cada porção será configurada
-                separadamente no pedido.
+                {isGourmet
+                  ? "Escolha o tamanho desta receita pronta. O cliente receberá os ingredientes definidos abaixo."
+                  : "Adicione os tamanhos e quantidades. Cada porção será configurada separadamente no pedido."}
               </p>
               <div className="space-y-3">
                 {selectedSizes.map((portion, index) => (
                   <div
                     key={`portion-${index}`}
-                    className="grid grid-cols-[minmax(0,1fr)_92px_40px] items-end gap-2"
+                    className={
+                      isGourmet
+                        ? "grid grid-cols-1 items-end gap-2"
+                        : "grid grid-cols-[minmax(0,1fr)_92px_40px] items-end gap-2"
+                    }
                   >
                     <label className="block space-y-1.5 text-xs font-bold">
-                      Tamanho {index + 1}
+                      {isGourmet ? "Tamanho" : `Tamanho ${index + 1}`}
                       <select
                         required
                         value={portion.itemId}
@@ -515,56 +591,62 @@ export function CatalogEditorDialog({
                         ))}
                       </select>
                     </label>
-                    <label className="block space-y-1.5 text-xs font-bold">
-                      Quantidade
-                      <input
-                        required
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={portion.quantity}
-                        onChange={(event) =>
-                          updateSelectedSize(
-                            index,
-                            "quantity",
-                            Number(event.target.value),
-                          )
-                        }
-                        className={inputClassName}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      disabled={selectedSizes.length === 1}
-                      onClick={() =>
-                        setSelectedSizes((current) =>
-                          current.filter(
-                            (_, portionIndex) => portionIndex !== index,
-                          ),
-                        )
-                      }
-                      aria-label={`Remover tamanho ${index + 1}`}
-                      title="Remover tamanho"
-                      className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-md text-[#8b1a2e] hover:bg-[#f8eeee] disabled:opacity-40"
-                    >
-                      <TrashIcon aria-hidden="true" size={18} />
-                    </button>
+                    {!isGourmet && (
+                      <>
+                        <label className="block space-y-1.5 text-xs font-bold">
+                          Quantidade
+                          <input
+                            required
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={portion.quantity}
+                            onChange={(event) =>
+                              updateSelectedSize(
+                                index,
+                                "quantity",
+                                Number(event.target.value),
+                              )
+                            }
+                            className={inputClassName}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={selectedSizes.length === 1}
+                          onClick={() =>
+                            setSelectedSizes((current) =>
+                              current.filter(
+                                (_, portionIndex) => portionIndex !== index,
+                              ),
+                            )
+                          }
+                          aria-label={`Remover tamanho ${index + 1}`}
+                          title="Remover tamanho"
+                          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-md text-[#8b1a2e] hover:bg-[#f8eeee] disabled:opacity-40"
+                        >
+                          <TrashIcon aria-hidden="true" size={18} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedSizes((current) => [
-                    ...current,
-                    { itemId: "", quantity: 1 },
-                  ])
-                }
-                className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#8b1a2e] hover:underline"
-              >
-                <PlusIcon aria-hidden="true" size={17} />
-                Adicionar tamanho
-              </button>
+              {!isGourmet && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedSizes((current) => [
+                      ...current,
+                      { itemId: "", quantity: 1 },
+                    ])
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-[#8b1a2e] hover:underline"
+                >
+                  <PlusIcon aria-hidden="true" size={17} />
+                  Adicionar tamanho
+                </button>
+              )}
             </fieldset>
             <label className="block space-y-1.5 text-sm font-bold">
               URL da imagem
@@ -662,11 +744,16 @@ export function CatalogEditorDialog({
             </label>
             <fieldset className="space-y-3">
               <legend className="text-sm font-black">
-                Itens selecionados para o combo
+                {isGourmet ? "Ingredientes da receita fixa" : "Itens selecionados para o combo"}
               </legend>
               {!selectableItems.length && (
                 <p className="text-sm text-[#77776e]">
-                  Cadastre itens ativos antes de montar um combo.
+                  Cadastre os ingredientes ativos antes de montar este produto.
+                </p>
+              )}
+              {isGourmet && (
+                <p className="text-xs leading-5 text-[#77776e]">
+                  Selecione o sabor base e os ingredientes. O cliente não poderá alterar esta receita.
                 </p>
               )}
               <div className="max-h-64 space-y-3 overflow-y-auto rounded-md border border-[#e2e2dc] bg-white p-3">

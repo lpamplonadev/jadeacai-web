@@ -34,6 +34,7 @@ export type CatalogCombo = {
   comboKey: string;
   category: CatalogComboCategory;
   name: string;
+  description: string;
   sizeItemId: string;
   sizeName: string;
   priceCents: number;

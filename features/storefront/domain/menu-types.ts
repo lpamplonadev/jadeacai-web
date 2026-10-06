@@ -21,6 +21,7 @@ export type MenuCombo = {
   sizeId?: string;
   category?: "combo" | "gourmet";
   name: string;
+  description?: string;
   size: string;
   price: string;
   priceCents: number;

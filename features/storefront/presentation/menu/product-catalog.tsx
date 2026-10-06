@@ -110,40 +110,53 @@ export function ProductCatalog({
           id: `combo-${combo.id}`,
           type: combo.category === "gourmet" ? ("gourmet" as const) : ("combo" as const),
           name: combo.name,
-          description: [
-            (combo.items ?? [])
-              .filter((item) => item.kind === "size")
-              .map((item) => `${item.quantity} × ${item.name}`)
-              .join(" + "),
-            `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
-            ...(combo.includedFruits > 0
-              ? [
-                  `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`,
+          description:
+            combo.category === "gourmet"
+              ? combo.description || "Uma receita exclusiva, pronta para saborear."
+              : [
+                  (combo.items ?? [])
+                    .filter((item) => item.kind === "size")
+                    .map((item) => `${item.quantity} × ${item.name}`)
+                    .join(" + "),
+                  `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
+                  ...(combo.includedFruits > 0
+                    ? [
+                        `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`,
+                      ]
+                    : []),
+                  ...(combo.includedExtras > 0
+                    ? [
+                        `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`,
+                      ]
+                    : []),
                 ]
-              : []),
-            ...(combo.includedExtras > 0
-              ? [
-                  `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`,
-                ]
-              : []),
-          ]
-            .filter(Boolean)
-            .join(" · "),
-          details: `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
-          highlights: [
-            ...(combo.items ?? []).map(
-              (item) => `${item.quantity} × ${item.name}`,
-            ),
-            `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
-            combo.includedFruits > 0
-              ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
-              : "Frutas disponíveis para personalizar",
-            combo.includedExtras > 0
-              ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
-              : "Extras disponíveis para personalizar",
-          ],
+                  .filter(Boolean)
+                  .join(" · "),
+          details:
+            combo.category === "gourmet"
+              ? combo.description || "Uma receita exclusiva, preparada pela casa."
+              : `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
+          highlights:
+            combo.category === "gourmet"
+              ? (combo.items ?? [])
+                  .filter((item) => item.kind !== "size")
+                  .map((item) => `${item.quantity} × ${item.name}`)
+              : [
+                  ...(combo.items ?? []).map(
+                    (item) => `${item.quantity} × ${item.name}`,
+                  ),
+                  `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
+                  combo.includedFruits > 0
+                    ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
+                    : "Frutas disponíveis para personalizar",
+                  combo.includedExtras > 0
+                    ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
+                    : "Extras disponíveis para personalizar",
+                ],
           price: combo.priceCents / 100,
-          tag: combo.tag || "Combo",
+          tag:
+            combo.tag ||
+            (combo.category === "gourmet" ? "Receita da casa" : "Combo"),
           image: combo.image,
           imageAlt: combo.imageAlt,
           rank: index,
@@ -483,7 +496,9 @@ export function ProductCatalog({
                         <>
                           {selectedProduct.type === "free"
                             ? "Montar meu açaí"
-                            : "Personalizar combo"}
+                            : selectedProduct.type === "gourmet"
+                              ? "Ver receita Gourmet"
+                              : "Personalizar combo"}
                           <ArrowRightIcon aria-hidden="true" size={17} />
                         </>
                       ) : (

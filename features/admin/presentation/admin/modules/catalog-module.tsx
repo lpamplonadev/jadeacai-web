@@ -436,6 +436,11 @@ export function CatalogModule() {
                     {combo.tag && (
                       <p className="mt-1 text-xs text-[#77776e]">{combo.tag}</p>
                     )}
+                    {combo.description && (
+                      <p className="mt-1 max-w-md text-xs leading-5 text-[#77776e]">
+                        {combo.description}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs">{combo.sizeName}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">

@@ -125,6 +125,21 @@ export function AcaiBuilder({
 
   function setComboDefaultItems(combo: MenuCombo) {
     const comboItems = combo.items ?? [];
+    if (combo.category === "gourmet") {
+      setSelectedFlavor(
+        comboItems.find((item) => item.kind === "flavor")?.id ?? null,
+      );
+      setSelectedSauce(
+        comboItems.find((item) => item.kind === "sauce")?.id ?? "none",
+      );
+      setSelectedCondimentPosition(
+        comboItems.find((item) => item.kind === "condiment_position")?.id ??
+          "bottom",
+      );
+    } else {
+      setSelectedSauce(null);
+      setSelectedCondimentPosition(null);
+    }
     setSelectedToppings(
       comboItems
         .filter((item) => item.kind === "topping")
@@ -132,8 +147,6 @@ export function AcaiBuilder({
           Array.from({ length: item.quantity }, () => item.id),
         ),
     );
-    setSelectedSauce(null);
-    setSelectedCondimentPosition(null);
     setSelectedFruits(
       comboItems
         .filter((item) => item.kind === "fruit")
@@ -165,48 +178,62 @@ export function AcaiBuilder({
     : [];
   const comboServingCount = comboPortions.length;
   const flavor = flavors.find((item) => item.id === selectedFlavor) ?? null;
+  const isFixedGourmet = selectedCombo?.category === "gourmet";
   const size = selectedCombo
     ? (comboPortions[comboServingIndex] ??
       getCupSizeForCombo(selectedCombo, cupSizes))
     : (cupSizes.find((item) => item.id === selectedSize) ?? null);
-  const toppingAllowance = selectedCombo?.includedToppings ?? includedToppings;
-  const fruitAllowance = selectedCombo?.includedFruits ?? includedFruits;
-  const extrasAllowance = selectedCombo?.includedExtras ?? 0;
+  const toppingAllowance = isFixedGourmet
+    ? selectedToppings.length
+    : (selectedCombo?.includedToppings ?? includedToppings);
+  const fruitAllowance = isFixedGourmet
+    ? selectedFruits.length
+    : (selectedCombo?.includedFruits ?? includedFruits);
+  const extrasAllowance = isFixedGourmet
+    ? selectedExtras.length
+    : (selectedCombo?.includedExtras ?? 0);
   const selectedExtrasList = selectedExtras.flatMap((id) => {
     const extra = extras.find((item) => item.id === id);
     return extra ? [extra] : [];
   });
-  const toppingsTotal = selectedToppings
-    .slice(toppingAllowance)
-    .reduce(
-      (total, id) =>
-        total + (toppings.find((item) => item.id === id)?.price ?? 0),
-      0,
-    );
-  const fruitsTotal = selectedFruits
-    .slice(fruitAllowance)
-    .reduce(
-      (total, id) =>
-        total + (fruits.find((item) => item.id === id)?.price ?? 0),
-      0,
-    );
-  const extrasTotal = selectedExtrasList
-    .slice(extrasAllowance)
-    .reduce((total, item) => total + item.price, 0);
-  const condimentPosition =
+  const toppingsTotal = isFixedGourmet
+    ? 0
+    : selectedToppings.slice(toppingAllowance).reduce(
+        (total, id) =>
+          total + (toppings.find((item) => item.id === id)?.price ?? 0),
+        0,
+      );
+  const fruitsTotal = isFixedGourmet
+    ? 0
+    : selectedFruits.slice(fruitAllowance).reduce(
+        (total, id) =>
+          total + (fruits.find((item) => item.id === id)?.price ?? 0),
+        0,
+      );
+  const extrasTotal = isFixedGourmet
+    ? 0
+    : selectedExtrasList
+        .slice(extrasAllowance)
+        .reduce((total, item) => total + item.price, 0);
+  const selectedPosition =
     condimentPositions.find((item) => item.id === selectedCondimentPosition) ??
     null;
+  const condimentPosition =
+    isFixedGourmet && selectedPosition
+      ? { ...selectedPosition, price: 0 }
+      : selectedPosition;
   const comboPriceCents = selectedCombo
     ? Math.floor(selectedCombo.priceCents / comboServingCount) +
       (comboServingIndex < selectedCombo.priceCents % comboServingCount ? 1 : 0)
     : 0;
   const comboPrice = selectedCombo ? comboPriceCents / 100 : (size?.price ?? 0);
-  const currentItemSubtotal =
-    comboPrice +
-    toppingsTotal +
-    fruitsTotal +
-    extrasTotal +
-    (condimentPosition?.price ?? 0);
+  const currentItemSubtotal = isFixedGourmet
+    ? comboPrice
+    : comboPrice +
+      toppingsTotal +
+      fruitsTotal +
+      extrasTotal +
+      (condimentPosition?.price ?? 0);
   const cartSubtotal = cartItems.reduce(
     (subtotal, item) => subtotal + item.estimatedSubtotalCents / 100,
     0,
@@ -377,7 +404,9 @@ export function AcaiBuilder({
       {
         id: crypto.randomUUID(),
         name: selectedCombo
-          ? `${selectedCombo.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`
+          ? isFixedGourmet
+            ? selectedCombo.name
+            : `${selectedCombo.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`
           : `Açaí livre · ${size.name}`,
         acai,
         estimatedSubtotalCents: Math.round(currentItemSubtotal * 100),
@@ -593,13 +622,19 @@ export function AcaiBuilder({
             Etapa {checkoutStep} de 2
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight text-crimson sm:text-4xl">
-            {checkoutStep === 1 ? "Monte seu açaí" : "Entrega e pagamento"}
+            {checkoutStep === 1
+              ? isFixedGourmet && selectedCombo
+                ? selectedCombo.name
+                : "Monte seu açaí"
+              : "Entrega e pagamento"}
           </h2>
           <p className="mt-3 text-base leading-7 text-crimson/75">
             {checkoutStep === 1
-              ? selectedCombo && comboServingCount > 1
-                ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · escolha o sabor e personalize este copo.`
-                : "Escolha sabor, tamanho e complementos. O valor acompanha suas escolhas."
+              ? isFixedGourmet
+                ? "Receita fixa da casa, preparada com os ingredientes descritos abaixo."
+                : selectedCombo && comboServingCount > 1
+                  ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · escolha o sabor e personalize este copo.`
+                  : "Escolha sabor, tamanho e complementos. O valor acompanha suas escolhas."
               : "Informe onde entregar e como prefere pagar. A solicitação vai para a API e a mensagem abre no WhatsApp."}
           </p>
           <ol
@@ -632,6 +667,30 @@ export function AcaiBuilder({
         <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
           {checkoutStep === 1 ? (
             <div className="space-y-9">
+              {isFixedGourmet && selectedCombo ? (
+                <section className="border-y border-blush/80 py-5">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-coral">
+                    Receita fixa
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-crimson/80">
+                    {selectedCombo.description}
+                  </p>
+                  <p className="mt-4 text-sm font-bold text-crimson">
+                    {size?.name} · {currency.format(comboPrice)}
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-text">
+                    {(selectedCombo.items ?? [])
+                      .filter((item) => item.kind !== "size")
+                      .map((item) => (
+                        <li key={item.id}>
+                          {item.quantity > 1 ? `${item.quantity}× ` : ""}
+                          {item.name}
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              ) : (
+                <>
               <fieldset>
                 <legend className="text-lg font-extrabold text-crimson">
                   <span className="mr-2 text-coral">01</span> Sabor do açaí
@@ -842,6 +901,8 @@ export function AcaiBuilder({
                   ))}
                 </div>
               </fieldset>
+                </>
+              )}
 
               {builderError && (
                 <p
