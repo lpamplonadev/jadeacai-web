@@ -32,7 +32,7 @@ export default async function AdminPage() {
             className="relative sm:text-2xl text-center text-lg font-extrabold tracking-wide"
             style={{ fontFamily: "Pacifico, cursive" }}
           >
-            Jade Açaí
+            Jade's Açaí
           </Link>
           <div className="relative my-10 max-w-md md:my-0">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#f2a4a7]">
@@ -46,7 +46,7 @@ export default async function AdminPage() {
             </p>
           </div>
           <p className="relative text-xs text-white/55">
-            Jade Açaí · Painel de operação
+            Jade's Açaí · Painel de operação
           </p>
         </section>
 
@@ -83,7 +83,7 @@ export default async function AdminPage() {
             className="text-xl font-black tracking-wide text-petal "
             style={{ fontFamily: "Pacifico, cursive" }}
           >
-            Jade Açaí
+            Jade's Açaí
           </Link>
           <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-petal">
             Operação
@@ -110,7 +110,7 @@ export default async function AdminPage() {
                   style={{ fontFamily: "Pacifico, cursive" }}
                   className="text-xl"
                 >
-                  Jade Açaí
+                  Jade's Açaí
                 </span>
                 {""} | Administração
               </p>

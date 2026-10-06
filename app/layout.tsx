@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jade Açaí | Feito pra você",
+  title: "Jade's Açaí | Feito pra você",
   description: "Açaí de verdade, feito na hora e com carinho.",
 };
 

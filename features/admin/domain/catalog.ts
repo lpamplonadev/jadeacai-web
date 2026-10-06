@@ -18,6 +18,8 @@ export type CatalogItem = {
   deletedAt: string | null;
 };
 
+export type CatalogComboCategory = "combo" | "gourmet";
+
 export type CatalogComboItem = {
   itemId: string;
   itemKey: string;
@@ -30,6 +32,7 @@ export type CatalogComboItem = {
 export type CatalogCombo = {
   id: string;
   comboKey: string;
+  category: CatalogComboCategory;
   name: string;
   sizeItemId: string;
   sizeName: string;

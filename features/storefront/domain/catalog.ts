@@ -12,6 +12,7 @@ export type PublicCatalogItem = {
 export type PublicCatalogCombo = Pick<
   MenuCombo,
   | "id"
+  | "category"
   | "name"
   | "size"
   | "priceCents"

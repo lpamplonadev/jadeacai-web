@@ -22,12 +22,12 @@ type ProductCatalogProps = {
   catalogError: boolean;
 };
 
-type ProductCategory = "all" | "free" | "combo";
+type ProductCategory = "all" | "free" | "combo" | "gourmet";
 type SortOrder = "featured" | "price-asc" | "price-desc";
 
 type CatalogProduct = {
   id: string;
-  type: "free" | "combo";
+  type: "free" | "combo" | "gourmet";
   name: string;
   description: string;
   details: string;
@@ -108,7 +108,7 @@ export function ProductCatalog({
         }),
         ...combos.map((combo, index) => ({
           id: `combo-${combo.id}`,
-          type: "combo" as const,
+          type: combo.category === "gourmet" ? ("gourmet" as const) : ("combo" as const),
           name: combo.name,
           description: [
             (combo.items ?? [])
@@ -164,7 +164,7 @@ export function ProductCatalog({
   const upperPrice = maxPrice === "" ? null : Number(maxPrice);
   const filteredProducts = productsToShow.filter((product) => {
     if (category !== "all" && product.type !== category) return false;
-    if (promotionsOnly && product.type !== "combo") return false;
+    if (promotionsOnly && product.type === "free") return false;
     if (lowerPrice !== null && product.price < lowerPrice) return false;
     if (upperPrice !== null && product.price > upperPrice) return false;
     return (
@@ -218,6 +218,7 @@ export function ProductCatalog({
                   ["all", "Todos os produtos"],
                   ["free", "Açaí livre"],
                   ["combo", "Combos"],
+                  ["gourmet", "Gourmet"],
                 ] as const
               ).map(([value, label]) => (
                 <label
@@ -364,7 +365,11 @@ export function ProductCatalog({
                     </div>
                     <div className="p-4">
                       <p className="text-[11px] font-extrabold uppercase text-crimson">
-                        {product.type === "free" ? "Açaí livre" : "Combo"}
+                        {product.type === "free"
+                          ? "Açaí livre"
+                          : product.type === "gourmet"
+                            ? "Gourmet"
+                            : "Combo"}
                       </p>
                       <h3 className="mt-1 min-h-12 font-bold text-text">
                         {product.name}
@@ -424,7 +429,9 @@ export function ProductCatalog({
                     <p className="text-xs font-extrabold uppercase text-crimson">
                       {selectedProduct.type === "free"
                         ? "Açaí livre"
-                        : selectedProduct.tag || "Combo"}
+                        : selectedProduct.type === "gourmet"
+                          ? "Gourmet"
+                          : selectedProduct.tag || "Combo"}
                     </p>
                     <button
                       type="button"

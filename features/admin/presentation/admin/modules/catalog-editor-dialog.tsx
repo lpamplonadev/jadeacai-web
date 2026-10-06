@@ -5,6 +5,7 @@ import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
 import type {
+  CatalogComboCategory,
   CatalogEditor,
   CatalogItem,
   CatalogItemKind,
@@ -94,6 +95,9 @@ export function CatalogEditorDialog({
   );
   const [includedExtras, setIncludedExtras] = useState(
     String(combo?.includedExtras ?? 0),
+  );
+  const [category, setCategory] = useState<CatalogComboCategory>(
+    combo?.category ?? "combo",
   );
   const [tag, setTag] = useState(combo?.tag ?? "");
   const [imageUrl, setImageUrl] = useState(combo?.imageUrl ?? "");
@@ -206,6 +210,7 @@ export function CatalogEditorDialog({
           }
         : {
             name: name.trim(),
+            category,
             sizeItemId: comboSizes[0]?.itemId ?? "",
             priceCents,
             includedToppings: Number(includedToppings),
@@ -392,6 +397,19 @@ export function CatalogEditorDialog({
                 onChange={(event) => setName(event.target.value)}
                 className={inputClassName}
               />
+            </label>
+            <label className="block space-y-1.5 text-sm font-bold">
+              Categoria da loja
+              <select
+                value={category}
+                onChange={(event) =>
+                  setCategory(event.target.value as CatalogComboCategory)
+                }
+                className={inputClassName}
+              >
+                <option value="combo">Combo</option>
+                <option value="gourmet">Gourmet</option>
+              </select>
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">

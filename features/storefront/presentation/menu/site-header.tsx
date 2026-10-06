@@ -20,13 +20,13 @@ export function SiteHeader({
         <a
           href="#inicio"
           className="flex items-center gap-3"
-          aria-label="Jade Açaí, início"
+          aria-label="Jade's Açaí, início"
         >
           <span
             style={{ fontFamily: "Pacifico, cursive" }}
             className="text-xl sm:text-4xl font-extrabold tracking-tight text-cream"
           >
-            Jade Açaí
+            Jade's Açaí
           </span>
         </a>
         <nav aria-label="Navegação principal" className="hidden gap-6 md:flex">

@@ -1,8 +1,8 @@
-# Project Handoff: Jade Açaí
+# Project Handoff: Jade's Açaí
 
 ## 1. Purpose and current state
 
-This repository contains the customer-facing Jade Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. Store hours, public open/closed status, the story section, and WhatsApp number are managed through Admin general settings. Closed status disables order actions in the storefront and is enforced again by the backend. The current purchase path is:
+This repository contains the customer-facing Jade's Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. Store hours, public open/closed status, the story section, and WhatsApp number are managed through Admin general settings. Closed status disables order actions in the storefront and is enforced again by the backend. The current purchase path is:
 
 1. The storefront loads active catalog items, combos, and pricing rules from the public API.
 2. The ecommerce catalog offers active açaí livre sizes and combos with search, category/price filters, promotion filter, and sorting. A combo or free size opens the configurator.
@@ -104,7 +104,7 @@ The builder can add up to 100 configured açaís to one cart and remove individu
 
 ## 7. Catalog source and commercial rules
 
-The PostgreSQL catalog is the source of truth for active sizes, flavors, combos, toppings, sauces, condiment positions, fruits, extras, and public pricing rules. The backend migration seeds the initial records. Admin changes are read by the public catalog endpoint and converted by `lib/jade-api.ts`; `acai-builder-data.ts` contains fallback values for when catalog data is incomplete, not the operational source of truth.
+The PostgreSQL catalog is the source of truth for active sizes, flavors, combos, toppings, sauces, condiment positions, fruits, extras, and public pricing rules. Combos carry a `category` of `combo` or `gourmet`, assigned in the Admin catalog editor; existing combos default to `combo`. The backend migration seeds the initial records. Admin changes are read by the public catalog endpoint and converted by `lib/jade-api.ts`; `acai-builder-data.ts` contains fallback values for when catalog data is incomplete, not the operational source of truth.
 
 Combo records include one or more sizes with quantities, package price, inclusions, and configured items; total component quantity is limited to 100. Each portion is configured separately in the builder. The package price is split across portion lines in cents, with any remainder assigned to the first portions so the line totals exactly match the combo price. Exceeding an individual portion's topping, fruit, or extra allowance asks the customer to switch that açaí to free mode. The delivery fee and builder allowances are estimates from the current catalog rules. Confirm all prices and inclusions with the business before launch; do not copy commercial figures from older handoff revisions.
 
