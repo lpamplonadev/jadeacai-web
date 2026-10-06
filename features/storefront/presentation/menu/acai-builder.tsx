@@ -122,6 +122,7 @@ export function AcaiBuilder({
           "bottom",
       );
     } else {
+      setSelectedFlavor(null);
       setSelectedSauce(null);
       setSelectedCondimentPosition(null);
     }
@@ -351,7 +352,9 @@ export function AcaiBuilder({
     );
     const description = [
       `${flavor.name} · ${size.name}`,
-      ...(selectedCombo ? [selectedCombo.name] : []),
+      ...(selectedCombo && selectedCombo.type !== "custom"
+        ? [selectedCombo.name]
+        : []),
       `Acompanhamentos: ${toppingNames.join(", ") || "nenhum"}`,
       `Calda: ${selectedSauce === "none" ? "sem calda" : (sauces.find((item) => item.id === selectedSauce)?.name ?? "nenhuma")}`,
       `Condimentos: ${condimentPosition?.name ?? "padrão"}`,
@@ -364,9 +367,11 @@ export function AcaiBuilder({
       {
         id: crypto.randomUUID(),
         name:
-          selectedCombo?.type === "gourmet"
-            ? `${selectedCombo.name} · ${size.name}`
-            : `${selectedCombo?.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`,
+          selectedCombo?.type === "custom"
+            ? selectedCombo.name
+            : selectedCombo?.type === "gourmet"
+              ? `${selectedCombo.name} · ${size.name}`
+              : `${selectedCombo?.name} · ${size.name} · ${comboServingIndex + 1}/${comboServingCount}`,
         acai,
         estimatedSubtotalCents: Math.round(currentItemSubtotal * 100),
         description,

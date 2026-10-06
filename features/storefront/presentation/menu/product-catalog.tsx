@@ -5,28 +5,32 @@ import {
   MagnifyingGlassIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import type { BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
 import type {
   MenuCombo,
   MenuGourmet,
   MenuGourmetSize,
   MenuOrderProduct,
+  Product,
 } from "@/features/storefront/domain/menu-types";
 
 type ProductCatalogProps = {
+  catalog: BuilderCatalogData;
   combos: MenuCombo[];
   gourmets: MenuGourmet[];
+  products: Product[];
   storeIsOpen: boolean;
   onChooseProduct: (product: MenuOrderProduct) => void;
   apiStatus: "checking" | "online" | "offline";
   catalogError: boolean;
 };
 
-type ProductCategory = "all" | "combo" | "gourmet";
+type ProductCategory = "all" | "custom" | "combo" | "gourmet";
 type SortOrder = "featured" | "price-asc" | "price-desc";
 
 type CatalogProduct = {
   id: string;
-  type: "combo" | "gourmet";
+  type: "custom" | "combo" | "gourmet";
   name: string;
   description: string;
   details: string;
@@ -50,8 +54,10 @@ const filterInputClassName =
   "min-h-10 w-full rounded-md border border-blush bg-white px-3 text-sm text-text outline-none focus:border-crimson";
 
 export function ProductCatalog({
+  catalog,
   combos,
   gourmets,
+  products,
   storeIsOpen,
   onChooseProduct,
   apiStatus,
@@ -83,6 +89,45 @@ export function ProductCatalog({
   }[apiStatus];
 
   const productsToShow: CatalogProduct[] = [
+    ...catalog.cupSizes.map((size, index) => {
+      const image = products[index % products.length];
+      return {
+        id: `custom-${size.id}`,
+        type: "custom" as const,
+        name: `Açaí ${size.name}`,
+        description: "Escolha o sabor e monte os complementos do seu jeito.",
+        details: `Monte seu açaí de ${size.name} com o sabor e os complementos que preferir. As opções e preços aparecem antes de adicionar ao pedido.`,
+        highlights: [
+          `Tamanho ${size.name}`,
+          `${catalog.includedToppings} acompanhamentos incluídos`,
+          `${catalog.includedFruits} ${catalog.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`,
+          "Ingredientes escolhidos por você",
+        ],
+        price: size.price,
+        tag: "Monte do seu jeito",
+        image: image?.image ?? "",
+        imageAlt: image?.imageAlt ?? size.name,
+        rank: index,
+        choose: () =>
+          onChooseProduct({
+            type: "custom",
+            id: `custom-${size.id}`,
+            name: `Açaí ${size.name}`,
+            sizeId: size.id,
+            size: size.name,
+            priceCents: Math.round(size.price * 100),
+            includedToppings: catalog.includedToppings,
+            includedFruits: catalog.includedFruits,
+            includedExtras: 0,
+            tag: "Monte do seu jeito",
+            image: image?.image ?? "",
+            imageAlt: image?.imageAlt ?? size.name,
+            items: [
+              { id: size.id, kind: "size", name: size.name, quantity: 1 },
+            ],
+          }),
+      };
+    }),
     ...combos.map((combo, index) => ({
       id: `combo-${combo.id}`,
       type: "combo" as const,
@@ -253,6 +298,7 @@ export function ProductCatalog({
               {(
                 [
                   ["all", "Todos os produtos"],
+                  ["custom", "Monte o seu"],
                   ["combo", "Combos"],
                   ["gourmet", "Gourmet"],
                 ] as const
@@ -401,7 +447,11 @@ export function ProductCatalog({
                     </div>
                     <div className="p-4">
                       <p className="text-[11px] font-extrabold uppercase text-crimson">
-                        {product.type === "gourmet" ? "Gourmet" : "Combo"}
+                        {product.type === "custom"
+                          ? "Monte o seu"
+                          : product.type === "gourmet"
+                            ? "Gourmet"
+                            : "Combo"}
                       </p>
                       <h3 className="mt-1 min-h-12 font-bold text-text">
                         {product.name}
@@ -464,9 +514,11 @@ export function ProductCatalog({
                 <div className="p-5 sm:p-7">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-xs font-extrabold uppercase text-crimson">
-                      {selectedProduct.type === "gourmet"
-                        ? "Gourmet"
-                        : selectedProduct.tag || "Combo"}
+                      {selectedProduct.type === "custom"
+                        ? "Monte o seu"
+                        : selectedProduct.type === "gourmet"
+                          ? "Gourmet"
+                          : selectedProduct.tag || "Combo"}
                     </p>
                     <button
                       type="button"
@@ -541,9 +593,11 @@ export function ProductCatalog({
                     >
                       {storeIsOpen ? (
                         <>
-                          {selectedProduct.type === "gourmet"
-                            ? "Ver receita Gourmet"
-                            : "Personalizar combo"}
+                          {selectedProduct.type === "custom"
+                            ? "Personalizar"
+                            : selectedProduct.type === "gourmet"
+                              ? "Ver receita Gourmet"
+                              : "Personalizar combo"}
                           <ArrowRightIcon aria-hidden="true" size={17} />
                         </>
                       ) : (

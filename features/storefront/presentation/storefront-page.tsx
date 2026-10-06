@@ -165,8 +165,10 @@ export default function Home() {
         />
         {builderCatalog ? (
           <ProductCatalog
+            catalog={builderCatalog}
             combos={menuCombos}
             gourmets={menuGourmets}
+            products={products}
               storeIsOpen={storeIsOpen}
             onChooseProduct={chooseProduct}
             apiStatus={apiStatus}
