@@ -50,6 +50,8 @@ export function CatalogEditorDialog({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const item = editor.type === "item" ? editor.item : undefined;
   const combo = editor.type === "combo" ? editor.combo : undefined;
+  const initialCategory =
+    editor.type === "combo" ? (editor.initialCategory ?? "combo") : "combo";
   const linkedItemIDs = new Set(
     (combo?.items ?? []).map((comboItem) => comboItem.itemId),
   );
@@ -97,7 +99,7 @@ export function CatalogEditorDialog({
     String(combo?.includedExtras ?? 0),
   );
   const [category, setCategory] = useState<CatalogComboCategory>(
-    combo?.category ?? "combo",
+    combo?.category ?? initialCategory,
   );
   const [tag, setTag] = useState(combo?.tag ?? "");
   const [imageUrl, setImageUrl] = useState(combo?.imageUrl ?? "");

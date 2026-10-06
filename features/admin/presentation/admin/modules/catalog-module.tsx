@@ -15,6 +15,7 @@ import {
   catalogKindLabels,
 } from "@/features/admin/presentation/admin/modules/catalog-editor-dialog";
 import type {
+  CatalogComboCategory,
   CatalogCombo,
   CatalogEditor,
   CatalogItem,
@@ -27,7 +28,7 @@ type CatalogData = {
   rules: { key: string; value: unknown }[];
 };
 
-type CatalogTab = "items" | "combos";
+type CatalogTab = "items" | "combos" | "gourmet";
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -151,30 +152,38 @@ export function CatalogModule() {
     setEditor({ type: "item", item });
   }
 
-  function openComboEditor(combo?: CatalogCombo) {
-    setEditor({ type: "combo", combo });
+  function openComboEditor(
+    combo?: CatalogCombo,
+    initialCategory: CatalogComboCategory = "combo",
+  ) {
+    setEditor({ type: "combo", combo, initialCategory });
   }
 
   const visibleItems = catalog.items.filter(
     (item) => kindFilter === "all" || item.kind === kindFilter,
   );
+  const visibleCombos = catalog.combos.filter((combo) =>
+    tab === "gourmet" ? combo.category === "gourmet" : combo.category === "combo",
+  );
   const totalForTab =
-    tab === "items" ? visibleItems.length : catalog.combos.length;
+    tab === "items" ? visibleItems.length : visibleCombos.length;
   const pageCount = Math.max(1, Math.ceil(totalForTab / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageStart = (currentPage - 1) * pageSize;
   const firstVisibleEntry = totalForTab === 0 ? 0 : pageStart + 1;
   const lastVisibleEntry = Math.min(pageStart + pageSize, totalForTab);
   const paginatedItems = visibleItems.slice(pageStart, pageStart + pageSize);
-  const paginatedCombos = catalog.combos.slice(
-    pageStart,
-    pageStart + pageSize,
-  );
+  const paginatedCombos = visibleCombos.slice(pageStart, pageStart + pageSize);
   const activeItemCount = catalog.items.filter(
     (item) => item.available && !item.deletedAt,
   ).length;
   const activeComboCount = catalog.combos.filter(
-    (combo) => combo.available && !combo.deletedAt,
+    (combo) =>
+      combo.category === "combo" && combo.available && !combo.deletedAt,
+  ).length;
+  const activeGourmetCount = catalog.combos.filter(
+    (combo) =>
+      combo.category === "gourmet" && combo.available && !combo.deletedAt,
   ).length;
 
   return (
@@ -212,6 +221,7 @@ export function CatalogModule() {
             [
               ["items", `Itens (${activeItemCount})`],
               ["combos", `Combos (${activeComboCount})`],
+                ["gourmet", `Gourmets (${activeGourmetCount})`],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -269,14 +279,23 @@ export function CatalogModule() {
           </label>
           <button
             type="button"
-            onClick={() =>
-              tab === "items" ? openItemEditor() : openComboEditor()
-            }
+            onClick={() => {
+              if (tab === "items") openItemEditor();
+              else
+                openComboEditor(
+                  undefined,
+                  tab === "gourmet" ? "gourmet" : "combo",
+                );
+            }}
             disabled={loading || Boolean(mutating)}
             className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[#8b1a2e] px-4 text-sm font-extrabold text-white hover:bg-[#6b1222] disabled:opacity-50"
           >
             <PlusIcon aria-hidden="true" size={17} />
-            {tab === "items" ? "Adicionar item" : "Criar combo"}
+            {tab === "items"
+              ? "Adicionar item"
+              : tab === "gourmet"
+                ? "Criar Gourmet"
+                : "Criar combo"}
           </button>
         </div>
       </div>
@@ -384,13 +403,13 @@ export function CatalogModule() {
             Nenhum item neste tipo.
           </p>
         )
-      ) : catalog.combos.length ? (
+      ) : visibleCombos.length ? (
         <div className="mt-4 overflow-x-auto border border-[#deded7] bg-white">
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead className="bg-[#f3f3ef] text-xs uppercase text-[#68685f]">
               <tr>
                 <th scope="col" className="px-4 py-3 font-extrabold">
-                  Combo
+                  {tab === "gourmet" ? "Gourmet" : "Combo"}
                 </th>
                 <th scope="col" className="px-4 py-3 font-extrabold">
                   Tamanho
@@ -484,7 +503,9 @@ export function CatalogModule() {
         </div>
       ) : (
         <p className="mt-4 border border-dashed border-[#d6d6ce] bg-white px-5 py-12 text-center text-sm text-[#77776e]">
-          Nenhum combo cadastrado.
+          {tab === "gourmet"
+            ? "Nenhum Gourmet cadastrado."
+            : "Nenhum combo cadastrado."}
         </p>
       )}
 

@@ -51,4 +51,8 @@ export type CatalogCombo = {
 
 export type CatalogEditor =
   | { type: "item"; item?: CatalogItem }
-  | { type: "combo"; combo?: CatalogCombo };
+  | {
+      type: "combo";
+      combo?: CatalogCombo;
+      initialCategory?: CatalogComboCategory;
+    };
