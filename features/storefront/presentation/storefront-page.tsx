@@ -7,7 +7,10 @@ import {
   type BuilderCatalogData,
 } from "@/features/storefront/domain/acai-builder-data";
 import { BrandFooter } from "@/features/storefront/presentation/menu/brand-footer";
-import { combos, products } from "@/features/storefront/presentation/menu/menu-data";
+import {
+  combos,
+  products,
+} from "@/features/storefront/presentation/menu/menu-data";
 import type { MenuCombo } from "@/features/storefront/domain/menu-types";
 import { ProductCatalog } from "@/features/storefront/presentation/menu/product-catalog";
 import { ProductHero } from "@/features/storefront/presentation/menu/product-hero";
@@ -27,7 +30,8 @@ export default function Home() {
   const [selectedSizeId, setSelectedSizeId] = useState<string | null>(null);
   const [sizeSelectionRequest, setSizeSelectionRequest] = useState(0);
   const [menuCombos, setMenuCombos] = useState<MenuCombo[]>([]);
-  const [builderCatalog, setBuilderCatalog] = useState<BuilderCatalogData | null>(null);
+  const [builderCatalog, setBuilderCatalog] =
+    useState<BuilderCatalogData | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [catalogError, setCatalogError] = useState(false);
   const heroSlideCount = 2 + Math.min(2, menuCombos.length);
@@ -58,7 +62,10 @@ export default function Home() {
             return {
               ...combo,
               price: currency.format(combo.priceCents / 100),
-              image: combo.image || visual?.image || products[index % products.length].image,
+              image:
+                combo.image ||
+                visual?.image ||
+                products[index % products.length].image,
               imageAlt: combo.imageAlt || visual?.imageAlt || combo.name,
             };
           }),
@@ -114,27 +121,27 @@ export default function Home() {
           onSelectSlide={setActiveSlide}
           onChangeSlide={changeSlide}
         />
-          {builderCatalog ? (
-            <ProductCatalog
-              combos={menuCombos}
-              catalog={builderCatalog}
-              products={products}
-              onChooseCombo={chooseCombo}
-              onChooseSize={chooseFreeSize}
-              apiStatus={apiStatus}
-              catalogError={catalogError}
-            />
-          ) : (
-            <section
-              id="catalogo"
-              role="status"
-              className="mx-auto max-w-7xl px-5 py-14 text-sm font-semibold text-crimson md:px-8"
-            >
-              {catalogError
-                ? "Não foi possível carregar o cardápio agora."
-                : "Carregando cardápio..."}
-            </section>
-          )}
+        {builderCatalog ? (
+          <ProductCatalog
+            combos={menuCombos}
+            catalog={builderCatalog}
+            products={products}
+            onChooseCombo={chooseCombo}
+            onChooseSize={chooseFreeSize}
+            apiStatus={apiStatus}
+            catalogError={catalogError}
+          />
+        ) : (
+          <section
+            id="catalogo"
+            role="status"
+            className="mx-auto max-w-7xl px-5 py-14 text-sm font-semibold text-crimson md:px-8"
+          >
+            {catalogError
+              ? "Não foi possível carregar o cardápio agora."
+              : "Carregando cardápio..."}
+          </section>
+        )}
         {builderCatalog ? (
           <AcaiBuilder
             selectedCombo={selectedCombo}

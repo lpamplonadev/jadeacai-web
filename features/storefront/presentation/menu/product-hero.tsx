@@ -4,8 +4,14 @@ import {
   ArrowRightIcon,
   CheckIcon,
 } from "@phosphor-icons/react";
-import { currency, type BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
-import type { MenuCombo, Product } from "@/features/storefront/domain/menu-types";
+import {
+  currency,
+  type BuilderCatalogData,
+} from "@/features/storefront/domain/acai-builder-data";
+import type {
+  MenuCombo,
+  Product,
+} from "@/features/storefront/domain/menu-types";
 
 type HeroPromotion = {
   name: string;
@@ -75,9 +81,10 @@ export function ProductHero({
   const freeDescription = catalog
     ? `Escolha entre ${flavorNames.join(" ou ") || "os sabores disponíveis"}.${freeInclusions.length ? ` ${freeInclusions.join(" e ")}.` : ""} Personalize e veja o valor antes de pedir.`
     : "Carregando as opções e preços atuais do cardápio.";
-  const freePriceLabel = startingPrice === null
-    ? "Consulte as opções do cardápio"
-    : `Açaí livre a partir de ${currency.format(startingPrice)}`;
+  const freePriceLabel =
+    startingPrice === null
+      ? "Consulte as opções do cardápio"
+      : `Açaí livre a partir de ${currency.format(startingPrice)}`;
 
   const promotions: HeroPromotion[] = [
     {
@@ -115,21 +122,15 @@ export function ProductHero({
           "adicionais",
           " grátis",
         ),
-        inclusionLabel(
-          combo.includedFruits,
-          "fruta",
-          "frutas",
-          " grátis",
-        ),
+        inclusionLabel(combo.includedFruits, "fruta", "frutas", " grátis"),
         inclusionLabel(combo.includedExtras, "extra", "extras", " grátis"),
       ]);
       return {
         name: combo.name,
         badge: combo.tag,
-        headline:
-          includedItems.some((item) => item.includes("fruta"))
-            ? `${combo.name}, com fruta`
-            : `${combo.name} pra começar`,
+        headline: includedItems.some((item) => item.includes("fruta"))
+          ? `${combo.name}, com fruta`
+          : `${combo.name} pra começar`,
         highlight: `por ${combo.price}.`,
         description: includedItems.length
           ? includedItems.join(" + ")

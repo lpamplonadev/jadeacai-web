@@ -16,18 +16,31 @@ import {
   fruits,
   sauces,
   toppings,
-} from "@/features/storefront/domain/acai-builder-data";
+} from "@/components/menu/acai-builder-data";
+import { combos } from "@/components/menu/menu-data";
 import {
   orderStatuses,
   type AdminOrder,
+  type OrderAcaiPayload,
   type OrderItemPayload,
   type OrderPayload,
 } from "@/features/admin/domain/orders";
-import {
-  formatOrderDate,
-  formatOrderNumber,
-} from "@/features/admin/application/order-formatting";
-import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
+
+export { orderStatuses } from "@/features/admin/domain/orders";
+export type { AdminOrder } from "@/features/admin/domain/orders";
+
+export function formatOrderNumber(orderNumber: number) {
+  return `#${String(orderNumber).padStart(4, "0")}`;
+}
+
+export function formatOrderDate(orderDate: string) {
+  return new Date(`${orderDate}T12:00:00`).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -116,7 +129,10 @@ export function OrderDetailsDialog({
             id: order.id,
             name:
               catalogCombos.find((combo) => combo.id === payload.acai?.comboId)
-                ?.name ?? "Açaí livre",
+                ?.name ??
+              combos.find((combo) => combo.id === payload.acai?.comboId)
+                ?.name ??
+              "Açaí livre",
             estimatedSubtotalCents: order.estimatedTotalCents,
             acai: payload.acai,
           },
@@ -133,7 +149,7 @@ export function OrderDetailsDialog({
 
     async function loadCatalog() {
       try {
-        const response = await requestAdminApi("/catalog", {
+        const response = await fetch("/admin/api/catalog", {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -160,8 +176,8 @@ export function OrderDetailsDialog({
     setSaving(true);
     setError("");
     try {
-      const response = await requestAdminApi(
-        `/orders/${encodeURIComponent(order.id)}`,
+      const response = await fetch(
+        `/admin/api/orders/${encodeURIComponent(order.id)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

@@ -136,12 +136,12 @@ Backend mantido no repositório [lpamplonadev/jadeacai-api](https://github.com/l
 
 The storefront calls these public routes through `lib/jade-api.ts`:
 
-| Method | Route | Current purpose |
-| --- | --- | --- |
-| `GET` | `/health` | API health check |
-| `GET` | `/api/v1/menu/catalog` | Load active items, combos, and pricing rules from PostgreSQL |
-| `GET` | `/api/v1/menu/combos` | Compatibility response containing active combos (`{ combos: [...] }`) |
-| `POST` | `/api/v1/orders` | Persist an order with up to 100 configured açaí lines |
+| Method | Route                  | Current purpose                                                       |
+| ------ | ---------------------- | --------------------------------------------------------------------- |
+| `GET`  | `/health`              | API health check                                                      |
+| `GET`  | `/api/v1/menu/catalog` | Load active items, combos, and pricing rules from PostgreSQL          |
+| `GET`  | `/api/v1/menu/combos`  | Compatibility response containing active combos (`{ combos: [...] }`) |
+| `POST` | `/api/v1/orders`       | Persist an order with up to 100 configured açaí lines                 |
 
 `POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `status`, `persisted`, `orderId`, `orderNumber`, and `orderDate`. The request includes `items[]`; the top-level `acai` field mirrors the first line for compatibility. The API does not recalculate submitted subtotals or `estimatedTotalCents`, so do not use these values as trusted charge amounts.
 
@@ -149,19 +149,19 @@ The storefront calls these public routes through `lib/jade-api.ts`:
 
 All `/api/v1/admin/*` routes require `Authorization: Bearer <ADMIN_API_KEY>`:
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/v1/admin/health` | Verify Admin API key configuration |
-| `GET` | `/api/v1/admin/dashboard?date=YYYY-MM-DD` | Daily metrics, order-status counts, and recent orders for the dashboard |
-| `GET` | `/api/v1/admin/orders?date=&status=&search=&page=&limit=` | Filtered and paginated order list, including order data |
-| `PATCH` | `/api/v1/admin/orders/{orderId}` | Update status to `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, or `completed` |
-| `GET` | `/api/v1/admin/catalog` | List configurable items and combos |
-| `POST` | `/api/v1/admin/catalog/items` | Create a flavor, size, topping, sauce, condiment position, fruit, or extra |
-| `PATCH` | `/api/v1/admin/catalog/items/{itemId}` | Update item name, price, sort order, or availability |
-| `DELETE` | `/api/v1/admin/catalog/items/{itemId}` | Soft-archive a catalog item |
-| `POST` | `/api/v1/admin/catalog/combos` | Create a combo |
-| `PATCH` | `/api/v1/admin/catalog/combos/{comboId}` | Update combo details, included quantities, items, or availability |
-| `DELETE` | `/api/v1/admin/catalog/combos/{comboId}` | Soft-archive a catalog combo |
+| Method   | Route                                                     | Purpose                                                                                            |
+| -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/admin/health`                                    | Verify Admin API key configuration                                                                 |
+| `GET`    | `/api/v1/admin/dashboard?date=YYYY-MM-DD`                 | Daily metrics, order-status counts, and recent orders for the dashboard                            |
+| `GET`    | `/api/v1/admin/orders?date=&status=&search=&page=&limit=` | Filtered and paginated order list, including order data                                            |
+| `PATCH`  | `/api/v1/admin/orders/{orderId}`                          | Update status to `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, or `completed` |
+| `GET`    | `/api/v1/admin/catalog`                                   | List configurable items and combos                                                                 |
+| `POST`   | `/api/v1/admin/catalog/items`                             | Create a flavor, size, topping, sauce, condiment position, fruit, or extra                         |
+| `PATCH`  | `/api/v1/admin/catalog/items/{itemId}`                    | Update item name, price, sort order, or availability                                               |
+| `DELETE` | `/api/v1/admin/catalog/items/{itemId}`                    | Soft-archive a catalog item                                                                        |
+| `POST`   | `/api/v1/admin/catalog/combos`                            | Create a combo                                                                                     |
+| `PATCH`  | `/api/v1/admin/catalog/combos/{comboId}`                  | Update combo details, included quantities, items, or availability                                  |
+| `DELETE` | `/api/v1/admin/catalog/combos/{comboId}`                  | Soft-archive a catalog combo                                                                       |
 
 The catalog Admin UI supports creating, editing, pausing/reactivating, and archiving items and combos. Archive uses `deleted_at` so references and order history remain intact. The dashboard and order modules refresh through the authenticated proxy. There is no coupon API or active coupon workflow, despite the retained coupons navigation/module placeholder.
 

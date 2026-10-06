@@ -19,14 +19,20 @@ export async function handleAdminProxy(
     return jsonError("admin session required", 401);
   }
 
-  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(
+    /\/+$/,
+    "",
+  );
   const apiKey = process.env.ADMIN_API_KEY;
   if (!apiBaseUrl || !apiKey) {
     return jsonError("admin API proxy is not configured", 503);
   }
 
   const { path } = await context.params;
-  if (!path.length || path.some((segment) => !/^[a-zA-Z0-9_-]+$/.test(segment))) {
+  if (
+    !path.length ||
+    path.some((segment) => !/^[a-zA-Z0-9_-]+$/.test(segment))
+  ) {
     return jsonError("invalid admin API path", 400);
   }
 

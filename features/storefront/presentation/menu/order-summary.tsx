@@ -112,19 +112,27 @@ export function OrderSummary({
         <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blush">
           {cartItems.length > 0
             ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-            : selectedCombo?.name ?? "Açaí livre"}
+            : (selectedCombo?.name ?? "Açaí livre")}
         </p>
         <h3 className="mt-2 text-2xl font-black">
           {cartItems.length > 0 ? "Seu pedido" : "Do jeitinho que você gosta"}
         </h3>
         {cartItems.length > 0 && (
-          <section aria-label="Itens do carrinho" className="mt-5 border-b border-white/20 pb-5">
+          <section
+            aria-label="Itens do carrinho"
+            className="mt-5 border-b border-white/20 pb-5"
+          >
             <ul className="space-y-3">
               {cartItems.map((item) => (
-                <li key={item.id} className="flex items-start justify-between gap-3 text-sm">
+                <li
+                  key={item.id}
+                  className="flex items-start justify-between gap-3 text-sm"
+                >
                   <div className="min-w-0">
                     <p className="font-bold text-white">{item.name}</p>
-                    <p className="mt-1 text-xs leading-5 text-blush">{item.description}</p>
+                    <p className="mt-1 text-xs leading-5 text-blush">
+                      {item.description}
+                    </p>
                     <p className="mt-1 text-xs font-bold text-white">
                       {currency.format(item.subtotalCents / 100)}
                     </p>
@@ -145,64 +153,64 @@ export function OrderSummary({
           </section>
         )}
         {hasCurrentConfiguration && (
-        <div className="mt-6 space-y-3 border-b border-white/20 pb-5 text-sm">
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Sabor</span>
-            <span>{flavorName ?? "a escolher"}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Tamanho</span>
-            <span>{sizeName ?? "a escolher"}</span>
-          </div>
-          {sizeName && (
+          <div className="mt-6 space-y-3 border-b border-white/20 pb-5 text-sm">
             <div className="flex justify-between gap-4">
-              <span className="text-blush">Preço base</span>
-              <span>{currency.format(comboPrice)}</span>
+              <span className="text-blush">Sabor</span>
+              <span>{flavorName ?? "a escolher"}</span>
             </div>
-          )}
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Acompanhamentos</span>
-            <span>{selectedToppingCount} selecionado(s)</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Caldas</span>
-            <span>{sauceSummary}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Posição dos condimentos</span>
-            <span>
-              {condimentPosition
-                ? `${condimentPosition.name}${condimentPosition.price > 0 ? ` · + ${currency.format(condimentPosition.price)}` : " · incluído"}`
-                : "a escolher"}
-            </span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-blush">Frutas</span>
-            <span>{selectedFruitCount} selecionada(s)</span>
-          </div>
-          {toppingsTotal > 0 && (
             <div className="flex justify-between gap-4">
-              <span className="text-blush">Acompanhamentos adicionais</span>
-              <span>+ {currency.format(toppingsTotal)}</span>
+              <span className="text-blush">Tamanho</span>
+              <span>{sizeName ?? "a escolher"}</span>
             </div>
-          )}
-          {fruitsTotal > 0 && (
+            {sizeName && (
+              <div className="flex justify-between gap-4">
+                <span className="text-blush">Preço base</span>
+                <span>{currency.format(comboPrice)}</span>
+              </div>
+            )}
             <div className="flex justify-between gap-4">
-              <span className="text-blush">Frutas adicionais</span>
-              <span>+ {currency.format(fruitsTotal)}</span>
+              <span className="text-blush">Acompanhamentos</span>
+              <span>{selectedToppingCount} selecionado(s)</span>
             </div>
-          )}
-          {selectedExtras.map((item, index) => (
-            <div key={item.id} className="flex justify-between gap-4">
-              <span className="text-blush">{item.name}</span>
+            <div className="flex justify-between gap-4">
+              <span className="text-blush">Caldas</span>
+              <span>{sauceSummary}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-blush">Posição dos condimentos</span>
               <span>
-                {index < extrasAllowance
-                  ? "grátis"
-                  : `+ ${currency.format(item.price)}`}
+                {condimentPosition
+                  ? `${condimentPosition.name}${condimentPosition.price > 0 ? ` · + ${currency.format(condimentPosition.price)}` : " · incluído"}`
+                  : "a escolher"}
               </span>
             </div>
-          ))}
-        </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-blush">Frutas</span>
+              <span>{selectedFruitCount} selecionada(s)</span>
+            </div>
+            {toppingsTotal > 0 && (
+              <div className="flex justify-between gap-4">
+                <span className="text-blush">Acompanhamentos adicionais</span>
+                <span>+ {currency.format(toppingsTotal)}</span>
+              </div>
+            )}
+            {fruitsTotal > 0 && (
+              <div className="flex justify-between gap-4">
+                <span className="text-blush">Frutas adicionais</span>
+                <span>+ {currency.format(fruitsTotal)}</span>
+              </div>
+            )}
+            {selectedExtras.map((item, index) => (
+              <div key={item.id} className="flex justify-between gap-4">
+                <span className="text-blush">{item.name}</span>
+                <span>
+                  {index < extrasAllowance
+                    ? "grátis"
+                    : `+ ${currency.format(item.price)}`}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
         {cartItems.length > 0 && (
           <div className="mb-4 flex justify-between gap-4 text-sm">
@@ -279,7 +287,7 @@ export function OrderSummary({
             <span className="block truncate text-sm font-bold">
               {cartItems.length > 0
                 ? `Sacola · ${cartItems.length} ${cartItems.length === 1 ? "item" : "itens"}`
-                : selectedCombo?.name ?? "Açaí livre"}
+                : (selectedCombo?.name ?? "Açaí livre")}
             </span>
           </span>
           <output

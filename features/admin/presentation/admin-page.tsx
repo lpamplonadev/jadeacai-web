@@ -9,7 +9,10 @@ import { CouponsModule } from "@/features/admin/presentation/admin/modules/coupo
 import { DashboardModule } from "@/features/admin/presentation/admin/modules/dashboard-module";
 import { OrdersModule } from "@/features/admin/presentation/admin/modules/orders-module";
 import { logoutAction } from "@/features/admin/infrastructure/server-actions";
-import { hasValidAdminSession, isAdminAuthConfigured } from "@/features/admin/infrastructure/admin-auth";
+import {
+  hasValidAdminSession,
+  isAdminAuthConfigured,
+} from "@/features/admin/infrastructure/admin-auth";
 
 export default async function AdminPage() {
   await connection();

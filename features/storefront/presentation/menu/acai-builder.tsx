@@ -17,13 +17,9 @@ import {
   type SelectionGroup,
   type PendingSelection,
 } from "@/features/storefront/domain/acai-builder-data";
-import {
-  OrderSummary,
-} from "@/features/storefront/presentation/menu/order-summary";
+import { OrderSummary } from "@/features/storefront/presentation/menu/order-summary";
 import type { MenuCombo } from "@/features/storefront/domain/menu-types";
-import {
-  createOrder,
-} from "@/features/storefront/infrastructure/api-client";
+import { createOrder } from "@/features/storefront/infrastructure/api-client";
 import type {
   CreateOrderLine,
   OrderAcaiConfiguration,
@@ -31,10 +27,7 @@ import type {
 
 type BuilderCartItem = CreateOrderLine & { description: string };
 
-function getComboPortions(
-  combo: MenuCombo,
-  cupSizes: BuilderPriceChoice[],
-) {
+function getComboPortions(combo: MenuCombo, cupSizes: BuilderPriceChoice[]) {
   const portions = (combo.items ?? [])
     .filter((item) => item.kind === "size")
     .flatMap((item) => {
@@ -124,19 +117,25 @@ export function AcaiBuilder({
     setSelectedToppings(
       comboItems
         .filter((item) => item.kind === "topping")
-        .flatMap((item) => Array.from({ length: item.quantity }, () => item.id)),
+        .flatMap((item) =>
+          Array.from({ length: item.quantity }, () => item.id),
+        ),
     );
     setSelectedSauce(null);
     setSelectedCondimentPosition(null);
     setSelectedFruits(
       comboItems
         .filter((item) => item.kind === "fruit")
-        .flatMap((item) => Array.from({ length: item.quantity }, () => item.id)),
+        .flatMap((item) =>
+          Array.from({ length: item.quantity }, () => item.id),
+        ),
     );
     setSelectedExtras(
       comboItems
         .filter((item) => item.kind === "extra")
-        .flatMap((item) => Array.from({ length: item.quantity }, () => item.id)),
+        .flatMap((item) =>
+          Array.from({ length: item.quantity }, () => item.id),
+        ),
     );
   }
 
@@ -156,7 +155,8 @@ export function AcaiBuilder({
   const comboServingCount = comboPortions.length;
   const flavor = flavors.find((item) => item.id === selectedFlavor) ?? null;
   const size = selectedCombo
-    ? (comboPortions[comboServingIndex] ?? getCupSizeForCombo(selectedCombo, cupSizes))
+    ? (comboPortions[comboServingIndex] ??
+      getCupSizeForCombo(selectedCombo, cupSizes))
     : (cupSizes.find((item) => item.id === selectedSize) ?? null);
   const toppingAllowance = selectedCombo?.includedToppings ?? includedToppings;
   const fruitAllowance = selectedCombo?.includedFruits ?? includedFruits;
@@ -168,13 +168,15 @@ export function AcaiBuilder({
   const toppingsTotal = selectedToppings
     .slice(toppingAllowance)
     .reduce(
-      (total, id) => total + (toppings.find((item) => item.id === id)?.price ?? 0),
+      (total, id) =>
+        total + (toppings.find((item) => item.id === id)?.price ?? 0),
       0,
     );
   const fruitsTotal = selectedFruits
     .slice(fruitAllowance)
     .reduce(
-      (total, id) => total + (fruits.find((item) => item.id === id)?.price ?? 0),
+      (total, id) =>
+        total + (fruits.find((item) => item.id === id)?.price ?? 0),
       0,
     );
   const extrasTotal = selectedExtrasList
@@ -187,9 +189,7 @@ export function AcaiBuilder({
     ? Math.floor(selectedCombo.priceCents / comboServingCount) +
       (comboServingIndex < selectedCombo.priceCents % comboServingCount ? 1 : 0)
     : 0;
-  const comboPrice = selectedCombo
-    ? comboPriceCents / 100
-    : (size?.price ?? 0);
+  const comboPrice = selectedCombo ? comboPriceCents / 100 : (size?.price ?? 0);
   const currentItemSubtotal =
     comboPrice +
     toppingsTotal +
@@ -203,12 +203,12 @@ export function AcaiBuilder({
   const hasCurrentConfiguration = Boolean(flavor && size);
   const currentHasSelections = Boolean(
     selectedFlavor ||
-      selectedSize ||
-      selectedToppings.length ||
-      selectedSauce ||
-      selectedCondimentPosition ||
-      selectedFruits.length ||
-      selectedExtras.length,
+    selectedSize ||
+    selectedToppings.length ||
+    selectedSauce ||
+    selectedCondimentPosition ||
+    selectedFruits.length ||
+    selectedExtras.length,
   );
   const canAddToCart = hasCurrentConfiguration && cartItems.length < 20;
   const total =
@@ -320,7 +320,9 @@ export function AcaiBuilder({
 
   function addCurrentToCart() {
     if (!flavor || !size) {
-      setBuilderError("Escolha o sabor e o tamanho para adicionar ao carrinho.");
+      setBuilderError(
+        "Escolha o sabor e o tamanho para adicionar ao carrinho.",
+      );
       return false;
     }
     if (cartItems.length >= 100) {
@@ -348,7 +350,7 @@ export function AcaiBuilder({
       `${flavor.name} · ${size.name}`,
       ...(selectedCombo ? [selectedCombo.name] : []),
       `Acompanhamentos: ${toppingNames.join(", ") || "nenhum"}`,
-      `Calda: ${selectedSauce === "none" ? "sem calda" : sauces.find((item) => item.id === selectedSauce)?.name ?? "nenhuma"}`,
+      `Calda: ${selectedSauce === "none" ? "sem calda" : (sauces.find((item) => item.id === selectedSauce)?.name ?? "nenhuma")}`,
       `Condimentos: ${condimentPosition?.name ?? "padrão"}`,
       `Frutas: ${fruitNames.join(", ") || "nenhuma"}`,
       `Extras: ${selectedExtrasList.map((item) => item.name).join(", ") || "nenhum"}`,
@@ -406,7 +408,9 @@ export function AcaiBuilder({
     if (hasCurrentConfiguration) {
       if (!addCurrentToCart()) return;
     } else if (currentHasSelections) {
-      setBuilderError("Complete sabor e tamanho ou descarte a configuração atual.");
+      setBuilderError(
+        "Complete sabor e tamanho ou descarte a configuração atual.",
+      );
       return;
     } else if (cartItems.length === 0) {
       setBuilderError("Adicione pelo menos um açaí ao carrinho.");
@@ -441,7 +445,10 @@ export function AcaiBuilder({
 
   async function submitDeliveryOrder() {
     if (cartItems.length === 0) {
-      setOrderFeedback({ type: "error", message: "Adicione um açaí ao carrinho antes de enviar." });
+      setOrderFeedback({
+        type: "error",
+        message: "Adicione um açaí ao carrinho antes de enviar.",
+      });
       return;
     }
     const paymentNames: Record<string, string> = {

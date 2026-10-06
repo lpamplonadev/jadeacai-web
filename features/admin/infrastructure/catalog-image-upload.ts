@@ -50,7 +50,10 @@ export async function uploadCatalogImage(request: Request) {
   }
 
   const contentLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > maxImageSizeBytes + 64 * 1024) {
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > maxImageSizeBytes + 64 * 1024
+  ) {
     return jsonError("A imagem excede o limite de 5 MB.", 413);
   }
 
@@ -74,7 +77,10 @@ export async function uploadCatalogImage(request: Request) {
     return jsonError("A imagem excede o limite de 5 MB.", 413);
   }
   if (!(await hasValidImageSignature(file, file.type))) {
-    return jsonError("O conteúdo do arquivo não corresponde a uma imagem válida.", 415);
+    return jsonError(
+      "O conteúdo do arquivo não corresponde a uma imagem válida.",
+      415,
+    );
   }
 
   const objectName = `${randomUUID()}.${extension}`;

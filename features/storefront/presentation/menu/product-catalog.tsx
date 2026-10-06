@@ -6,7 +6,10 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import type { BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
-import type { MenuCombo, Product } from "@/features/storefront/domain/menu-types";
+import type {
+  MenuCombo,
+  Product,
+} from "@/features/storefront/domain/menu-types";
 
 type ProductCatalogProps = {
   combos: MenuCombo[];
@@ -59,7 +62,9 @@ export function ProductCatalog({
   const [maxPrice, setMaxPrice] = useState("");
   const [promotionsOnly, setPromotionsOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState<SortOrder>("featured");
-  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
+    null,
+  );
   const detailsDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -110,18 +115,23 @@ export function ProductCatalog({
               .join(" + "),
             `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento" : "acompanhamentos"}`,
             ...(combo.includedFruits > 0
-              ? [`${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`]
+              ? [
+                  `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta" : "frutas"}`,
+                ]
               : []),
             ...(combo.includedExtras > 0
-              ? [`${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`]
+              ? [
+                  `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`,
+                ]
               : []),
           ]
             .filter(Boolean)
             .join(" · "),
           details: `${combo.name} reúne uma combinação caprichada de tamanhos e complementos para aproveitar seu açaí com praticidade. Personalize o sabor de cada porção no configurador; as inclusões do combo já aparecem por lá.`,
           highlights: [
-            ...(combo.items ?? [])
-              .map((item) => `${item.quantity} × ${item.name}`),
+            ...(combo.items ?? []).map(
+              (item) => `${item.quantity} × ${item.name}`,
+            ),
             `${combo.includedToppings} ${combo.includedToppings === 1 ? "acompanhamento incluído" : "acompanhamentos incluídos"}`,
             combo.includedFruits > 0
               ? `${combo.includedFruits} ${combo.includedFruits === 1 ? "fruta incluída" : "frutas incluídas"}`
@@ -410,7 +420,9 @@ export function ProductCatalog({
                 <div className="p-5 sm:p-7">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-xs font-extrabold uppercase text-crimson">
-                      {selectedProduct.type === "free" ? "Açaí livre" : selectedProduct.tag || "Combo"}
+                      {selectedProduct.type === "free"
+                        ? "Açaí livre"
+                        : selectedProduct.tag || "Combo"}
                     </p>
                     <button
                       type="button"
@@ -433,7 +445,12 @@ export function ProductCatalog({
                   <ul className="mt-5 space-y-2 border-y border-blush/80 py-4 text-sm text-crimson">
                     {selectedProduct.highlights.map((highlight) => (
                       <li key={highlight} className="flex gap-2">
-                        <span aria-hidden="true" className="font-black text-coral">•</span>
+                        <span
+                          aria-hidden="true"
+                          className="font-black text-coral"
+                        >
+                          •
+                        </span>
                         <span>{highlight}</span>
                       </li>
                     ))}

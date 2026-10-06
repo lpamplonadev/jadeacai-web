@@ -1,4 +1,7 @@
-import type { PublicCatalog, PublicCatalogItem } from "@/features/storefront/domain/catalog";
+import type {
+  PublicCatalog,
+  PublicCatalogItem,
+} from "@/features/storefront/domain/catalog";
 import type {
   BuilderCatalogData,
   BuilderChoice,
@@ -24,7 +27,8 @@ function asPricedChoices(items: PublicCatalogItem[]): BuilderPriceChoice[] {
 }
 
 export function toBuilderCatalog(catalog: PublicCatalog): BuilderCatalogData {
-  const rule = (key: string, fallback: number) => catalog.rules[key] ?? fallback;
+  const rule = (key: string, fallback: number) =>
+    catalog.rules[key] ?? fallback;
   return {
     flavors: asChoices(itemsOfKind(catalog, "flavor")),
     cupSizes: asPricedChoices(itemsOfKind(catalog, "size")),

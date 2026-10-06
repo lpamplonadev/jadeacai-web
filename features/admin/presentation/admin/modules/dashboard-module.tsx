@@ -8,7 +8,10 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
-import { formatOrderDate, formatOrderNumber } from "@/features/admin/application/order-formatting";
+import {
+  formatOrderDate,
+  formatOrderNumber,
+} from "@/features/admin/application/order-formatting";
 import { orderStatuses } from "@/features/admin/domain/orders";
 
 type DashboardResponse = {

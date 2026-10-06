@@ -3,12 +3,21 @@
 import Image from "next/image";
 import { PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
 import type {
-  CatalogEditor,
+  CatalogCombo,
   CatalogItem,
   CatalogItemKind,
 } from "@/features/admin/domain/catalog";
+
+export type {
+  CatalogCombo,
+  CatalogItem,
+  CatalogItemKind,
+} from "@/features/admin/domain/catalog";
+
+export type CatalogEditor =
+  | { type: "item"; item?: CatalogItem }
+  | { type: "combo"; combo?: CatalogCombo };
 
 type CatalogEditorDialogProps = {
   editor: CatalogEditor;
@@ -134,7 +143,7 @@ export function CatalogEditorDialog({
     setUploadingImage(true);
 
     try {
-      const response = await requestAdminApi("/catalog/images", {
+      const response = await fetch("/admin/api/catalog/images", {
         method: "POST",
         body: formData,
       });
@@ -179,11 +188,11 @@ export function CatalogEditorDialog({
     const endpoint =
       editor.type === "item"
         ? item
-          ? `/catalog/items/${item.id}`
-          : "/catalog/items"
+          ? `/admin/api/catalog/items/${item.id}`
+          : "/admin/api/catalog/items"
         : combo
-          ? `/catalog/combos/${combo.id}`
-          : "/catalog/combos";
+          ? `/admin/api/catalog/combos/${combo.id}`
+          : "/admin/api/catalog/combos";
     const method =
       editor.type === "item"
         ? item
@@ -229,7 +238,7 @@ export function CatalogEditorDialog({
           };
 
     try {
-      const response = await requestAdminApi(endpoint, {
+      const response = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

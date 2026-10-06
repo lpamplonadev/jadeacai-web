@@ -1,10 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
-import { getCepAddress } from "@/features/storefront/infrastructure/cep-api";
-import {
-  brazilianMobilePhonePattern,
-  formatBrazilianMobilePhone,
-} from "@/features/storefront/domain/order";
 
 export type DeliveryDetails = {
   customerName: string;
@@ -39,6 +34,12 @@ const paymentMethods = [
   { id: "cash", label: "Dinheiro" },
   { id: "card", label: "Cartão na entrega" },
 ];
+
+type ViaCepResponse = {
+  bairro?: string;
+  erro?: boolean;
+  logradouro?: string;
+};
 
 export function DeliveryCheckoutForm({
   details,
@@ -77,7 +78,12 @@ export function DeliveryCheckoutForm({
     setCepLookupMessage("");
 
     try {
-      const address = await getCepAddress(digits, controller.signal);
+      const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("CEP lookup failed");
+
+      const address = (await response.json()) as ViaCepResponse;
       if (address.erro) {
         setCepLookupMessage(
           "CEP não encontrado. Confira ou preencha o endereço manualmente.",
@@ -128,19 +134,10 @@ export function DeliveryCheckoutForm({
             <input
               type="tel"
               autoComplete="tel"
-              inputMode="tel"
               required
-              maxLength={15}
-              pattern={brazilianMobilePhonePattern}
-              title="Informe um celular com DDD válido no formato (DD) 9XXXX-XXXX."
               value={details.phone}
-              onChange={(event) =>
-                onChange(
-                  "phone",
-                  formatBrazilianMobilePhone(event.target.value),
-                )
-              }
-              placeholder="(21) 99999-9999"
+              onChange={(event) => onChange("phone", event.target.value)}
+              placeholder="(00) 00000-0000"
               className={inputClassName}
             />
           </label>
