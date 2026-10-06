@@ -76,10 +76,14 @@ export function CatalogEditorDialog({
   const linkedItemIDs = new Set(
     (combo?.items ?? []).map((comboItem) => comboItem.itemId),
   );
+  const linkedGourmetSizeIDs = new Set(
+    (combo?.gourmetSizes ?? []).map((size) => size.sizeItemId),
+  );
   const activeItems = items.filter(
     (catalogItem) =>
       (catalogItem.available && !catalogItem.deletedAt) ||
       linkedItemIDs.has(catalogItem.id) ||
+      linkedGourmetSizeIDs.has(catalogItem.id) ||
       catalogItem.id === combo?.sizeItemId,
   );
   const sizeItems = activeItems.filter(
@@ -95,6 +99,23 @@ export function CatalogEditorDialog({
   const [description, setDescription] = useState(
     combo?.description?.trim() ||
       (editorCategory === "gourmet" ? defaultGourmetDescription : ""),
+  );
+  const [gourmetSizePrices, setGourmetSizePrices] = useState<Record<string, string>>(
+    () =>
+      combo
+        ? Object.fromEntries(
+            combo.gourmetSizes.map((size) => [
+              size.sizeItemId,
+              toPriceInput(size.priceCents),
+            ]),
+          )
+        : editorCategory === "gourmet"
+          ? Object.fromEntries(
+              sizeItems
+                .filter((size) => /(?:330|550|770)\s*ml/i.test(size.name))
+                .map((size) => [size.id, ""]),
+            )
+          : {},
   );
   const [price, setPrice] = useState(
     toPriceInput(item?.priceCents ?? combo?.priceCents ?? 0),
@@ -224,8 +245,16 @@ export function CatalogEditorDialog({
         setError("Informe uma descrição para apresentar o Gourmet na loja.");
         return;
       }
-      if (!selectedSizes[0]?.itemId) {
-        setError("Selecione o tamanho do Gourmet.");
+      if (Object.keys(gourmetSizePrices).length === 0) {
+        setError("Selecione pelo menos um tamanho para este Gourmet.");
+        return;
+      }
+      if (
+        Object.values(gourmetSizePrices).some(
+          (value) => !value.trim() || toPriceCents(value) < 0,
+        )
+      ) {
+        setError("Informe um preço válido para cada tamanho selecionado.");
         return;
       }
       if (
@@ -261,6 +290,13 @@ export function CatalogEditorDialog({
     const priceCents = toPriceCents(price);
 
     const comboSizes = selectedSizes.filter((portion) => portion.itemId);
+    const gourmetSizes = Object.entries(gourmetSizePrices).map(
+      ([sizeItemId, value]) => ({
+        sizeItemId,
+        priceCents: toPriceCents(value),
+      }),
+    );
+    const firstGourmetSize = gourmetSizes[0];
     const body =
       editor.type === "item"
         ? {
@@ -274,8 +310,14 @@ export function CatalogEditorDialog({
             name: name.trim(),
             category,
             description: description.trim(),
-            sizeItemId: comboSizes[0]?.itemId ?? "",
-            priceCents,
+            sizeItemId:
+              category === "gourmet"
+                ? (firstGourmetSize?.sizeItemId ?? "")
+                : (comboSizes[0]?.itemId ?? ""),
+            priceCents:
+              category === "gourmet"
+                ? (firstGourmetSize?.priceCents ?? 0)
+                : priceCents,
             includedToppings:
               category === "gourmet" ? 0 : Number(includedToppings),
             includedFruits: category === "gourmet" ? 0 : Number(includedFruits),
@@ -285,11 +327,14 @@ export function CatalogEditorDialog({
             imageAlt,
             available,
             sortOrder: Number(sortOrder),
+            gourmetSizes: category === "gourmet" ? gourmetSizes : [],
             items: [
-              ...comboSizes.map(({ itemId, quantity }) => ({
-                itemId,
-                quantity,
-              })),
+              ...(category === "gourmet"
+                ? []
+                : comboSizes.map(({ itemId, quantity }) => ({
+                    itemId,
+                    quantity,
+                  }))),
               ...Object.entries(selectedItems).map(([itemId, quantity]) => ({
                 itemId,
                 quantity,
@@ -484,52 +529,54 @@ export function CatalogEditorDialog({
                 Combo personalizável
               </p>
             )}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block space-y-1.5 text-sm font-bold">
-                Preço (R$)
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={price}
-                  onChange={(event) => setPrice(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-            </div>
-            {!isGourmet && <div className="grid gap-4 sm:grid-cols-3">
-              <label className="block space-y-1.5 text-sm font-bold">
-                Acompanhamentos incluídos
-                <input
-                  type="number"
-                  min="0"
-                  value={includedToppings}
-                  onChange={(event) => setIncludedToppings(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-bold">
-                Frutas incluídas
-                <input
-                  type="number"
-                  min="0"
-                  value={includedFruits}
-                  onChange={(event) => setIncludedFruits(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-bold">
-                Extras incluídos
-                <input
-                  type="number"
-                  min="0"
-                  value={includedExtras}
-                  onChange={(event) => setIncludedExtras(event.target.value)}
-                  className={inputClassName}
-                />
-              </label>
-            </div>}
+            {!isGourmet && (
+              <>
+                <label className="block space-y-1.5 text-sm font-bold">
+                  Preço (R$)
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(event) => setPrice(event.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <label className="block space-y-1.5 text-sm font-bold">
+                    Acompanhamentos incluídos
+                    <input
+                      type="number"
+                      min="0"
+                      value={includedToppings}
+                      onChange={(event) => setIncludedToppings(event.target.value)}
+                      className={inputClassName}
+                    />
+                  </label>
+                  <label className="block space-y-1.5 text-sm font-bold">
+                    Frutas incluídas
+                    <input
+                      type="number"
+                      min="0"
+                      value={includedFruits}
+                      onChange={(event) => setIncludedFruits(event.target.value)}
+                      className={inputClassName}
+                    />
+                  </label>
+                  <label className="block space-y-1.5 text-sm font-bold">
+                    Extras incluídos
+                    <input
+                      type="number"
+                      min="0"
+                      value={includedExtras}
+                      onChange={(event) => setIncludedExtras(event.target.value)}
+                      className={inputClassName}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
             <label className="block space-y-1.5 text-sm font-bold">
               {isGourmet ? "Selo (opcional)" : "Destaque"}
               <input
@@ -539,100 +586,145 @@ export function CatalogEditorDialog({
                 className={inputClassName}
               />
             </label>
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-black">
-                {isGourmet ? "Tamanho do Gourmet" : "Açaís incluídos no combo"}
-              </legend>
-              <p className="text-xs leading-5 text-[#77776e]">
-                {isGourmet
-                  ? "Escolha o tamanho desta receita pronta. O cliente receberá os ingredientes definidos abaixo."
-                  : "Adicione os tamanhos e quantidades. Cada porção será configurada separadamente no pedido."}
-              </p>
-              <div className="space-y-3">
-                {selectedSizes.map((portion, index) => (
-                  <div
-                    key={`portion-${index}`}
-                    className={
-                      isGourmet
-                        ? "grid grid-cols-1 items-end gap-2"
-                        : "grid grid-cols-[minmax(0,1fr)_92px_40px] items-end gap-2"
-                    }
-                  >
-                    <label className="block space-y-1.5 text-xs font-bold">
-                      {isGourmet ? "Tamanho" : `Tamanho ${index + 1}`}
-                      <select
-                        required
-                        value={portion.itemId}
-                        onChange={(event) =>
-                          updateSelectedSize(
-                            index,
-                            "itemId",
-                            event.target.value,
-                          )
-                        }
-                        className={inputClassName}
+            {isGourmet ? (
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-black">
+                  Tamanhos e preços do Gourmet
+                </legend>
+                <p className="text-xs leading-5 text-[#77776e]">
+                  Selecione os tamanhos disponíveis e informe o preço de cada um.
+                </p>
+                {!sizeItems.length && (
+                  <p className="text-sm text-[#77776e]">
+                    Cadastre tamanhos na aba Itens antes de configurar o Gourmet.
+                  </p>
+                )}
+                <div className="divide-y divide-[#e8e8e2] border-y border-[#e8e8e2]">
+                  {sizeItems.map((size) => {
+                    const selected = Object.hasOwn(gourmetSizePrices, size.id);
+                    return (
+                      <div
+                        key={size.id}
+                        className="grid grid-cols-[minmax(0,1fr)_minmax(120px,180px)] items-center gap-3 py-3"
                       >
-                        <option value="">Selecione</option>
-                        {sizeItems.map((size) => (
-                          <option
-                            key={size.id}
-                            value={size.id}
-                            disabled={selectedSizes.some(
-                              (other, otherIndex) =>
-                                otherIndex !== index &&
-                                other.itemId === size.id,
-                            )}
-                          >
-                            {size.name}
-                            {!size.available || size.deletedAt
-                              ? " (inativo)"
-                              : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {!isGourmet && (
-                      <>
-                        <label className="block space-y-1.5 text-xs font-bold">
-                          Quantidade
+                        <label className="flex min-h-10 items-center gap-3 text-sm font-semibold">
                           <input
-                            required
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={portion.quantity}
-                            onChange={(event) =>
-                              updateSelectedSize(
-                                index,
-                                "quantity",
-                                Number(event.target.value),
-                              )
+                            type="checkbox"
+                            checked={selected}
+                            disabled={
+                              !selected &&
+                              (!size.available || Boolean(size.deletedAt))
                             }
+                            onChange={(event) =>
+                              setGourmetSizePrices((current) => {
+                                const next = { ...current };
+                                if (event.target.checked) next[size.id] = "";
+                                else delete next[size.id];
+                                return next;
+                              })
+                            }
+                            className="h-4 w-4 accent-[#8b1a2e]"
+                          />
+                          <span>
+                            {size.name}
+                            {!size.available || size.deletedAt ? " (inativo)" : ""}
+                          </span>
+                        </label>
+                        <label className="block space-y-1 text-xs font-bold">
+                          <span className="sr-only">Preço de {size.name} (R$)</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required={selected}
+                            disabled={!selected}
+                            value={gourmetSizePrices[size.id] ?? ""}
+                            onChange={(event) =>
+                              setGourmetSizePrices((current) => ({
+                                ...current,
+                                [size.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="Preço (R$)"
                             className={inputClassName}
                           />
                         </label>
-                        <button
-                          type="button"
-                          disabled={selectedSizes.length === 1}
-                          onClick={() =>
-                            setSelectedSizes((current) =>
-                              current.filter(
-                                (_, portionIndex) => portionIndex !== index,
-                              ),
-                            )
+                      </div>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-black">
+                  Açaís incluídos no combo
+                </legend>
+                <p className="text-xs leading-5 text-[#77776e]">
+                  Adicione os tamanhos e quantidades. Cada porção será configurada separadamente no pedido.
+                </p>
+                <div className="space-y-3">
+                  {selectedSizes.map((portion, index) => (
+                    <div
+                      key={`portion-${index}`}
+                      className="grid grid-cols-[minmax(0,1fr)_92px_40px] items-end gap-2"
+                    >
+                      <label className="block space-y-1.5 text-xs font-bold">
+                        Tamanho {index + 1}
+                        <select
+                          required
+                          value={portion.itemId}
+                          onChange={(event) =>
+                            updateSelectedSize(index, "itemId", event.target.value)
                           }
-                          aria-label={`Remover tamanho ${index + 1}`}
-                          title="Remover tamanho"
-                          className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-md text-[#8b1a2e] hover:bg-[#f8eeee] disabled:opacity-40"
+                          className={inputClassName}
                         >
-                          <TrashIcon aria-hidden="true" size={18} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {!isGourmet && (
+                          <option value="">Selecione</option>
+                          {sizeItems.map((size) => (
+                            <option
+                              key={size.id}
+                              value={size.id}
+                              disabled={selectedSizes.some(
+                                (other, otherIndex) =>
+                                  otherIndex !== index && other.itemId === size.id,
+                              )}
+                            >
+                              {size.name}
+                              {!size.available || size.deletedAt ? " (inativo)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block space-y-1.5 text-xs font-bold">
+                        Quantidade
+                        <input
+                          required
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={portion.quantity}
+                          onChange={(event) =>
+                            updateSelectedSize(index, "quantity", Number(event.target.value))
+                          }
+                          className={inputClassName}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={selectedSizes.length === 1}
+                        onClick={() =>
+                          setSelectedSizes((current) =>
+                            current.filter((_, portionIndex) => portionIndex !== index),
+                          )
+                        }
+                        aria-label={`Remover tamanho ${index + 1}`}
+                        title="Remover tamanho"
+                        className="mb-0.5 flex h-10 w-10 items-center justify-center rounded-md text-[#8b1a2e] hover:bg-[#f8eeee] disabled:opacity-40"
+                      >
+                        <TrashIcon aria-hidden="true" size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
                 <button
                   type="button"
                   onClick={() =>
@@ -646,8 +738,8 @@ export function CatalogEditorDialog({
                   <PlusIcon aria-hidden="true" size={17} />
                   Adicionar tamanho
                 </button>
-              )}
-            </fieldset>
+              </fieldset>
+            )}
             <label className="block space-y-1.5 text-sm font-bold">
               URL da imagem
               <input

@@ -20,6 +20,13 @@ export type CatalogItem = {
 
 export type CatalogComboCategory = "combo" | "gourmet";
 
+export type CatalogComboGourmetSize = {
+  sizeItemId: string;
+  sizeName: string;
+  priceCents: number;
+  available: boolean;
+};
+
 export type CatalogComboItem = {
   itemId: string;
   itemKey: string;
@@ -35,6 +42,7 @@ export type CatalogCombo = {
   category: CatalogComboCategory;
   name: string;
   description: string;
+  gourmetSizes: CatalogComboGourmetSize[];
   sizeItemId: string;
   sizeName: string;
   priceCents: number;

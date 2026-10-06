@@ -15,6 +15,12 @@ export type MenuComboItem = {
   quantity: number;
 };
 
+export type MenuGourmetSize = {
+  sizeId: string;
+  size: string;
+  priceCents: number;
+};
+
 export type MenuCombo = {
   id: string;
   key?: string;
@@ -22,6 +28,7 @@ export type MenuCombo = {
   category?: "combo" | "gourmet";
   name: string;
   description?: string;
+  gourmetSizes?: MenuGourmetSize[];
   size: string;
   price: string;
   priceCents: number;

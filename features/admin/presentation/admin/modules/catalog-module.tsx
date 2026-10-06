@@ -442,9 +442,25 @@ export function CatalogModule() {
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs">{combo.sizeName}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {combo.category === "gourmet"
+                      ? combo.gourmetSizes
+                          .map(
+                            (size) =>
+                              `${size.sizeName}${size.available ? "" : " (inativo)"}`,
+                          )
+                          .join(", ")
+                      : combo.sizeName}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs font-bold">
-                    {currency.format(combo.priceCents / 100)}
+                    {combo.category === "gourmet"
+                      ? combo.gourmetSizes
+                          .map(
+                            (size) =>
+                              `${size.sizeName}: ${currency.format(size.priceCents / 100)}`,
+                          )
+                          .join(" · ")
+                      : currency.format(combo.priceCents / 100)}
                   </td>
                   <td className="max-w-sm px-4 py-3 text-xs text-[#55554e]">
                     {combo.items.length

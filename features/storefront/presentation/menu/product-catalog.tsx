@@ -8,6 +8,7 @@ import {
 import type { BuilderCatalogData } from "@/features/storefront/domain/acai-builder-data";
 import type {
   MenuCombo,
+  MenuGourmetSize,
   Product,
 } from "@/features/storefront/domain/menu-types";
 
@@ -33,11 +34,13 @@ type CatalogProduct = {
   details: string;
   highlights: string[];
   price: number;
+  pricePrefix?: string;
+  gourmetSizes?: MenuGourmetSize[];
   tag: string;
   image: string;
   imageAlt: string;
   rank: number;
-  choose: () => void;
+  choose: (sizeId?: string) => void;
 };
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -67,6 +70,7 @@ export function ProductCatalog({
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(
     null,
   );
+  const [selectedGourmetSizeId, setSelectedGourmetSizeId] = useState("");
   const detailsDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -153,14 +157,46 @@ export function ProductCatalog({
                     ? `${combo.includedExtras} ${combo.includedExtras === 1 ? "extra incluído" : "extras incluídos"}`
                     : "Extras disponíveis para personalizar",
                 ],
-          price: combo.priceCents / 100,
+          price:
+            combo.category === "gourmet" && combo.gourmetSizes?.length
+              ? Math.min(...combo.gourmetSizes.map((size) => size.priceCents)) /
+                100
+              : combo.priceCents / 100,
+          pricePrefix:
+            combo.category === "gourmet" && combo.gourmetSizes?.length
+              ? "A partir de"
+              : undefined,
+          gourmetSizes: combo.gourmetSizes,
           tag:
             combo.tag ||
             (combo.category === "gourmet" ? "Receita da casa" : "Combo"),
           image: combo.image,
           imageAlt: combo.imageAlt,
           rank: index,
-          choose: () => onChooseCombo(combo),
+          choose: (sizeId) => {
+            const selectedSize = combo.gourmetSizes?.find(
+              (size) => size.sizeId === sizeId,
+            );
+            if (combo.category !== "gourmet" || !selectedSize) {
+              onChooseCombo(combo);
+              return;
+            }
+            onChooseCombo({
+              ...combo,
+              sizeId: selectedSize.sizeId,
+              size: selectedSize.size,
+              priceCents: selectedSize.priceCents,
+              items: [
+                ...(combo.items ?? []).filter((item) => item.kind !== "size"),
+                {
+                  id: selectedSize.sizeId,
+                  kind: "size",
+                  name: selectedSize.size,
+                  quantity: 1,
+                },
+              ],
+            });
+          },
         })),
       ]
     : [];
@@ -169,7 +205,14 @@ export function ProductCatalog({
     if (!selectedProduct) return;
     const choose = selectedProduct.choose;
     setSelectedProduct(null);
-    choose();
+    choose(
+      selectedProduct.type === "gourmet" ? selectedGourmetSizeId : undefined,
+    );
+  }
+
+  function openProduct(product: CatalogProduct) {
+    setSelectedGourmetSizeId(product.gourmetSizes?.[0]?.sizeId ?? "");
+    setSelectedProduct(product);
   }
 
   const query = search.trim().toLocaleLowerCase("pt-BR");
@@ -193,6 +236,13 @@ export function ProductCatalog({
     if (sortOrder === "price-desc") return right.price - left.price;
     return left.rank - right.rank;
   });
+  const selectedGourmetSize = selectedProduct?.gourmetSizes?.find(
+    (size) => size.sizeId === selectedGourmetSizeId,
+  );
+  const selectedProductPrice =
+    selectedProduct?.type === "gourmet" && selectedGourmetSize
+      ? selectedGourmetSize.priceCents / 100
+      : selectedProduct?.price ?? 0;
 
   return (
     <section
@@ -344,7 +394,7 @@ export function ProductCatalog({
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedProduct(product)}
+                    onClick={() => openProduct(product)}
                     aria-label={`Ver detalhes de ${product.name}`}
                     className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-crimson"
                   >
@@ -392,6 +442,11 @@ export function ProductCatalog({
                       </p>
                       <div className="mt-4 flex items-center justify-between gap-3 border-t border-petal pt-3">
                         <span className="text-lg font-extrabold text-crimson">
+                          {product.pricePrefix && (
+                            <span className="block text-[10px] font-bold uppercase tracking-wide">
+                              {product.pricePrefix}
+                            </span>
+                          )}
                           {currency.format(product.price)}
                         </span>
                         <span className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-crimson px-3 text-xs font-bold text-white transition-colors group-hover:bg-dark">
@@ -464,6 +519,27 @@ export function ProductCatalog({
                   <p className="mt-3 text-sm leading-6 text-text/80">
                     {selectedProduct.details}
                   </p>
+                  {selectedProduct.type === "gourmet" &&
+                    selectedProduct.gourmetSizes && (
+                      <fieldset className="mt-5 space-y-2">
+                        <legend className="text-sm font-extrabold text-crimson">
+                          Escolha o tamanho
+                        </legend>
+                        <div className="flex flex-wrap gap-2" role="group">
+                          {selectedProduct.gourmetSizes.map((size) => (
+                            <button
+                              key={size.sizeId}
+                              type="button"
+                              aria-pressed={selectedGourmetSizeId === size.sizeId}
+                              onClick={() => setSelectedGourmetSizeId(size.sizeId)}
+                              className={`min-h-10 rounded-md border px-3 text-xs font-bold ${selectedGourmetSizeId === size.sizeId ? "border-crimson bg-crimson text-white" : "border-blush bg-white text-crimson hover:border-coral"}`}
+                            >
+                              {size.size} · {currency.format(size.priceCents / 100)}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    )}
                   <ul className="mt-5 space-y-2 border-y border-blush/80 py-4 text-sm text-crimson">
                     {selectedProduct.highlights.map((highlight) => (
                       <li key={highlight} className="flex gap-2">
@@ -480,16 +556,20 @@ export function ProductCatalog({
                   <div className="mt-5 flex items-end justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold text-crimson/75">
-                        Valor
+                        {selectedProduct.type === "gourmet" ? "Valor do tamanho" : "Valor"}
                       </p>
                       <p className="text-2xl font-black text-crimson">
-                        {currency.format(selectedProduct.price)}
+                        {currency.format(selectedProductPrice)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={customizeSelectedProduct}
-                      disabled={!storeIsOpen}
+                      disabled={
+                        !storeIsOpen ||
+                        (selectedProduct.type === "gourmet" &&
+                          !selectedGourmetSize)
+                      }
                       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark"
                     >
                       {storeIsOpen ? (

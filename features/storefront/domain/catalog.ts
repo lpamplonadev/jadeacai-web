@@ -15,6 +15,7 @@ export type PublicCatalogCombo = Pick<
   | "category"
   | "name"
   | "description"
+  | "gourmetSizes"
   | "size"
   | "priceCents"
   | "includedToppings"
