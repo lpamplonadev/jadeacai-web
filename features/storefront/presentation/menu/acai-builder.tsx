@@ -265,6 +265,7 @@ export function AcaiBuilder({
   }
 
   function requestSelection(group: SelectionGroup, id: string) {
+    if (isFixedGourmet) return;
     const groupState = {
       toppings: {
         selected: selectedToppings,
@@ -622,7 +623,7 @@ export function AcaiBuilder({
               </p>
             ) : (
             <div className="space-y-9">
-              {isFixedGourmet ? (
+              {isFixedGourmet && selectedCombo && (
                 <section className="border-y border-blush/80 py-5">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-coral">
                     Receita fixa
@@ -644,9 +645,9 @@ export function AcaiBuilder({
                       ))}
                   </ul>
                 </section>
-              ) : (
-                <>
-              <fieldset>
+              )}
+              <>
+              <fieldset className={isFixedGourmet ? "opacity-45" : ""}>
                 <legend className="text-lg font-extrabold text-crimson">
                   <span className="mr-2 text-coral">01</span> Sabor do açaí
                 </legend>
@@ -659,6 +660,7 @@ export function AcaiBuilder({
                       key={item.id}
                       type="button"
                       aria-pressed={selectedFlavor === item.id}
+                      disabled={isFixedGourmet}
                       onClick={() => setSelectedFlavor(item.id)}
                       className={`flex min-h-14 items-center justify-between rounded-md border px-4 py-3 text-left text-sm font-bold transition-colors ${selectedFlavor === item.id ? "border-crimson bg-white text-crimson" : "border-blush bg-cream/70 text-text hover:border-coral"}`}
                     >
@@ -690,6 +692,7 @@ export function AcaiBuilder({
                   description={`${toppingAllowance} acompanhamentos incluídos neste combo; cada adicional custa ${currency.format(additionalToppingPrice)}.`}
                   choices={toppings}
                   selected={selectedToppings}
+                  disabled={isFixedGourmet}
                   onToggle={(id) => requestSelection("toppings", id)}
                   priceLabel={(choice) =>
                     choicePriceLabel(
@@ -702,7 +705,7 @@ export function AcaiBuilder({
                 />
               </div>
 
-              <fieldset>
+              <fieldset className={isFixedGourmet ? "opacity-45" : ""}>
                 <legend className="text-lg font-extrabold text-crimson">
                   <span className="mr-2 text-coral">04</span> Caldas
                 </legend>
@@ -721,6 +724,7 @@ export function AcaiBuilder({
                           name="acai-sauce"
                           value={sauce.id}
                           checked={selectedSauce === sauce.id}
+                          disabled={isFixedGourmet}
                           onChange={() => setSelectedSauce(sauce.id)}
                           className="h-4 w-4 accent-crimson"
                         />
@@ -737,6 +741,7 @@ export function AcaiBuilder({
                       name="acai-sauce"
                       value="none"
                       checked={selectedSauce === "none"}
+                      disabled={isFixedGourmet}
                       onChange={() => setSelectedSauce("none")}
                       className="h-4 w-4 accent-crimson"
                     />
@@ -745,7 +750,7 @@ export function AcaiBuilder({
                 </div>
               </fieldset>
 
-              <fieldset>
+              <fieldset className={isFixedGourmet ? "opacity-45" : ""}>
                 <legend className="text-lg font-extrabold text-crimson">
                   <span className="mr-2 text-coral">05</span> Posição dos
                   condimentos
@@ -765,6 +770,7 @@ export function AcaiBuilder({
                           name="condiment-position"
                           value={position.id}
                           checked={selectedCondimentPosition === position.id}
+                          disabled={isFixedGourmet}
                           onChange={() =>
                             setSelectedCondimentPosition(position.id)
                           }
@@ -789,6 +795,7 @@ export function AcaiBuilder({
                   description={`${fruitAllowance === 0 ? "Nenhuma fruta incluída" : `${fruitAllowance} ${fruitAllowance === 1 ? "fruta incluída" : "frutas incluídas"}`} neste combo; cada fruta adicional custa ${currency.format(additionalFruitPrice)}.`}
                   choices={fruits}
                   selected={selectedFruits}
+                  disabled={isFixedGourmet}
                   onToggle={(id) => requestSelection("fruits", id)}
                   priceLabel={(choice) =>
                     choicePriceLabel(
@@ -801,7 +808,7 @@ export function AcaiBuilder({
                 />
               </div>
 
-              <fieldset>
+              <fieldset className={isFixedGourmet ? "opacity-45" : ""}>
                 <legend className="text-lg font-extrabold text-crimson">
                   <span className="mr-2 text-coral">07</span> Extras
                 </legend>
@@ -820,6 +827,7 @@ export function AcaiBuilder({
                         <input
                           type="checkbox"
                           checked={selectedExtras.includes(item.id)}
+                          disabled={isFixedGourmet}
                           onChange={() => requestSelection("extras", item.id)}
                           className="h-4 w-4 accent-crimson"
                         />
@@ -838,8 +846,7 @@ export function AcaiBuilder({
                   ))}
                 </div>
               </fieldset>
-                </>
-              )}
+              </>
 
               {builderError && (
                 <p
