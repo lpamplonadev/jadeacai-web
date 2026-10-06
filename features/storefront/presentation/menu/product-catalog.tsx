@@ -15,6 +15,7 @@ type ProductCatalogProps = {
   combos: MenuCombo[];
   catalog: BuilderCatalogData | null;
   products: Product[];
+  storeIsOpen: boolean;
   onChooseCombo: (combo: MenuCombo) => void;
   onChooseSize: (sizeId: string) => void;
   apiStatus: "checking" | "online" | "offline";
@@ -51,6 +52,7 @@ export function ProductCatalog({
   combos,
   catalog,
   products,
+  storeIsOpen,
   onChooseCombo,
   onChooseSize,
   apiStatus,
@@ -467,12 +469,19 @@ export function ProductCatalog({
                     <button
                       type="button"
                       onClick={customizeSelectedProduct}
+                      disabled={!storeIsOpen}
                       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark"
                     >
-                      {selectedProduct.type === "free"
-                        ? "Montar meu açaí"
-                        : "Personalizar combo"}
-                      <ArrowRightIcon aria-hidden="true" size={17} />
+                      {storeIsOpen ? (
+                        <>
+                          {selectedProduct.type === "free"
+                            ? "Montar meu açaí"
+                            : "Personalizar combo"}
+                          <ArrowRightIcon aria-hidden="true" size={17} />
+                        </>
+                      ) : (
+                        "Loja fechada"
+                      )}
                     </button>
                   </div>
                 </div>

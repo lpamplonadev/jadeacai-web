@@ -1,8 +1,16 @@
 import type { PublicCatalog } from "@/features/storefront/domain/catalog";
 import type { MenuCombo } from "@/features/storefront/domain/menu-types";
 import type { CreateOrderRequest } from "@/features/storefront/domain/order";
+import type { StoreStatus } from "@/shared/domain/store-settings";
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+export class ApiError extends Error {
+  constructor(public readonly status: number) {
+    super(`A API respondeu com erro (${status}).`);
+    this.name = "ApiError";
+  }
+}
 
 type ApiMenuCombo = Pick<
   MenuCombo,
@@ -34,7 +42,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`A API respondeu com erro (${response.status}).`);
+    throw new ApiError(response.status);
   }
 
   return (await response.json()) as T;
@@ -53,6 +61,10 @@ export async function getMenuCombos() {
 
 export async function getPublicCatalog() {
   return requestJson<PublicCatalog>("/api/v1/menu/catalog");
+}
+
+export async function getStoreStatus() {
+  return requestJson<StoreStatus>("/api/v1/store/status");
 }
 
 export async function createOrder(order: CreateOrderRequest) {

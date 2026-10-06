@@ -2,7 +2,7 @@
 
 ## 1. Purpose and current state
 
-This repository contains the customer-facing Jade Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. The current purchase path is:
+This repository contains the customer-facing Jade Açaí storefront, a client-side configurator with a multi-item cart, and the operational `/admin` interface. Store hours, public open/closed status, the story section, and WhatsApp number are managed through Admin general settings. Closed status disables order actions in the storefront and is enforced again by the backend. The current purchase path is:
 
 1. The storefront loads active catalog items, combos, and pricing rules from the public API.
 2. The ecommerce catalog offers active açaí livre sizes and combos with search, category/price filters, promotion filter, and sorting. A combo or free size opens the configurator.
@@ -10,6 +10,8 @@ This repository contains the customer-facing Jade Açaí storefront, a client-si
 4. Submission opens a prefilled WhatsApp message and sends one multi-item order to the public orders API.
 
 The frontend also has a protected Admin for dashboard metrics, order search/details/status changes, and catalog item/combo management. Admin requests pass through a Next.js server-side proxy, which verifies the signed session before attaching the private API key. API availability and order persistence depend on the backend. Builder/cart state lives in React memory and resets on reload; orders are stored by the API, while WhatsApp remains the customer notification/confirmation channel.
+
+Default store hours use `America/Sao_Paulo`: Tuesday-Friday 19:00-23:00, Saturday-Sunday 17:00-23:00, Monday closed. Admin can force the store open or closed; returning to “Automático” restores the weekly schedule.
 
 ## 2. Setup and checks
 
@@ -124,7 +126,7 @@ The builder has two steps, both controlled in `acai-builder.tsx`:
 
 The customer can add up to 100 configured açaís; each cart line carries its own configuration and estimated subtotal. Combo portions are added one at a time so flavor and customizations can differ per cup. Checkout builds a Portuguese multiline WhatsApp message with all lines, totals, delivery details, payment, and (when applicable) the change request, then opens `https://wa.me/<number>?text=<encoded message>`. The frontend also sends one `CreateOrderRequest` with `items[]` to `POST /api/v1/orders`. The API persists the submitted estimated amounts but does not currently recalculate prices or validate selected catalog IDs; those values are not trusted charge amounts.
 
-The WhatsApp business number is `5521990174473` in `acai-builder-data.ts` and is also currently hardcoded in the checkout submit handler. If it changes, update both locations or centralize it further. `window.open` is client-only; the handler must remain in a Client Component.
+The WhatsApp business number comes from the public store settings response; it is edited in Admin general settings. `window.open` is client-only; the handler remains in a Client Component and only navigates to WhatsApp after the API accepts the order.
 
 No delivery fee is calculated from address and no address validation/CEP lookup exists. The current delivery fee is a catalog rule applied once per order; a customer can enter any neighborhood.
 
@@ -141,9 +143,10 @@ The storefront calls these public routes through `lib/jade-api.ts`:
 | `GET`  | `/health`              | API health check                                                      |
 | `GET`  | `/api/v1/menu/catalog` | Load active items, combos, and pricing rules from PostgreSQL          |
 | `GET`  | `/api/v1/menu/combos`  | Compatibility response containing active combos (`{ combos: [...] }`) |
+| `GET`  | `/api/v1/store/status` | Current open/closed state and public store settings                   |
 | `POST` | `/api/v1/orders`       | Persist an order with up to 100 configured açaí lines                 |
 
-`POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `status`, `persisted`, `orderId`, `orderNumber`, and `orderDate`. The request includes `items[]`; the top-level `acai` field mirrors the first line for compatibility. The API does not recalculate submitted subtotals or `estimatedTotalCents`, so do not use these values as trusted charge amounts.
+`POST /api/v1/orders` persists the request in PostgreSQL and returns `202 Accepted` with `status`, `persisted`, `orderId`, `orderNumber`, and `orderDate`; while the store is closed it returns `409` without persisting. The request includes `items[]`; the top-level `acai` field mirrors the first line for compatibility. The API does not recalculate submitted subtotals or `estimatedTotalCents`, so do not use these values as trusted charge amounts.
 
 ### Rotas administrativas implementadas
 
@@ -152,6 +155,9 @@ All `/api/v1/admin/*` routes require `Authorization: Bearer <ADMIN_API_KEY>`:
 | Method   | Route                                                     | Purpose                                                                                            |
 | -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/v1/admin/health`                                    | Verify Admin API key configuration                                                                 |
+| `GET`    | `/api/v1/admin/settings`                                  | Read general settings and current store status                                                       |
+| `PATCH`  | `/api/v1/admin/settings`                                  | Save weekly hours, story copy, and WhatsApp number                                                   |
+| `PATCH`  | `/api/v1/admin/settings/override`                         | Force open/closed or return to scheduled hours                                                       |
 | `GET`    | `/api/v1/admin/dashboard?date=YYYY-MM-DD`                 | Daily metrics, order-status counts, and recent orders for the dashboard                            |
 | `GET`    | `/api/v1/admin/orders?date=&status=&search=&page=&limit=` | Filtered and paginated order list, including order data                                            |
 | `PATCH`  | `/api/v1/admin/orders/{orderId}`                          | Update status to `received`, `preparing`, `ready`, `out_for_delivery`, `delivered`, or `completed` |

@@ -3,6 +3,7 @@ export const adminSections = [
   { id: "pedidos", label: "Pedidos" },
   { id: "catalogo", label: "Catálogo" },
   { id: "cupons", label: "Cupons" },
+  { id: "configuracoes", label: "Configurações" },
 ] as const;
 
 export type AdminSectionId = (typeof adminSections)[number]["id"];

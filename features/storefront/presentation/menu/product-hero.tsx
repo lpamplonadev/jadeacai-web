@@ -32,6 +32,7 @@ type ProductHeroProps = {
   products: Product[];
   combos: MenuCombo[];
   catalog: BuilderCatalogData | null;
+  storeIsOpen: boolean;
   onSelectSlide: (index: number) => void;
   onChangeSlide: (direction: number) => void;
 };
@@ -55,6 +56,7 @@ export function ProductHero({
   products,
   combos,
   catalog,
+  storeIsOpen,
   onSelectSlide,
   onChangeSlide,
 }: ProductHeroProps) {
@@ -179,13 +181,23 @@ export function ProductHero({
             {promotion.description}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-4">
-            <a
-              href={promotion.href}
-              className="inline-flex min-h-12 items-center gap-3 rounded-md bg-petal px-5 text-sm font-bold text-dark transition-colors hover:bg-dark hover:text-blush shadow-sm"
-            >
-              {promotion.ctaLabel}{" "}
-              <ArrowRightIcon aria-hidden="true" size={18} />
-            </a>
+            {storeIsOpen ? (
+              <a
+                href={promotion.href}
+                className="inline-flex min-h-12 items-center gap-3 rounded-md bg-petal px-5 text-sm font-bold text-dark shadow-sm transition-colors hover:bg-dark hover:text-blush"
+              >
+                {promotion.ctaLabel}{" "}
+                <ArrowRightIcon aria-hidden="true" size={18} />
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex min-h-12 cursor-not-allowed items-center gap-3 rounded-md bg-neutral-300 px-5 text-sm font-bold text-neutral-600 opacity-80"
+              >
+                Loja fechada
+              </button>
+            )}
             <span className="text-sm font-semibold text-muted">
               {promotion.priceLabel}
             </span>

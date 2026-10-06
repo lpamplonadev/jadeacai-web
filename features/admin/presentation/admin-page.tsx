@@ -7,6 +7,7 @@ import { MobileAdminMenu } from "@/features/admin/presentation/admin/mobile-admi
 import { CatalogModule } from "@/features/admin/presentation/admin/modules/catalog-module";
 import { CouponsModule } from "@/features/admin/presentation/admin/modules/coupons-module";
 import { DashboardModule } from "@/features/admin/presentation/admin/modules/dashboard-module";
+import { GeneralSettingsModule } from "@/features/admin/presentation/admin/modules/general-settings-module";
 import { OrdersModule } from "@/features/admin/presentation/admin/modules/orders-module";
 import { logoutAction } from "@/features/admin/infrastructure/server-actions";
 import {
@@ -124,6 +125,7 @@ export default async function AdminPage() {
             <OrdersModule />
             <CatalogModule />
             <CouponsModule />
+            <GeneralSettingsModule />
           </div>
         </section>
       </div>

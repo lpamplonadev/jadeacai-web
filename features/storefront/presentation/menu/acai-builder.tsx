@@ -19,11 +19,16 @@ import {
 } from "@/features/storefront/domain/acai-builder-data";
 import { OrderSummary } from "@/features/storefront/presentation/menu/order-summary";
 import type { MenuCombo } from "@/features/storefront/domain/menu-types";
-import { createOrder } from "@/features/storefront/infrastructure/api-client";
+import {
+  ApiError,
+  createOrder,
+  getStoreStatus,
+} from "@/features/storefront/infrastructure/api-client";
 import type {
   CreateOrderLine,
   OrderAcaiConfiguration,
 } from "@/features/storefront/domain/order";
+import type { StoreStatus } from "@/shared/domain/store-settings";
 
 type BuilderCartItem = CreateOrderLine & { description: string };
 
@@ -44,6 +49,9 @@ export function AcaiBuilder({
   onClearCombo,
   onCartCountChange,
   catalog,
+  storeIsOpen,
+  whatsAppNumber,
+  onStoreStatusChange,
 }: {
   selectedCombo: MenuCombo | null;
   initialSizeId: string | null;
@@ -51,6 +59,9 @@ export function AcaiBuilder({
   onClearCombo: () => void;
   onCartCountChange: (count: number) => void;
   catalog: BuilderCatalogData;
+  storeIsOpen: boolean;
+  whatsAppNumber: string;
+  onStoreStatusChange: (status: StoreStatus | null) => void;
 }) {
   const {
     additionalFruitPrice,
@@ -210,7 +221,8 @@ export function AcaiBuilder({
     selectedFruits.length ||
     selectedExtras.length,
   );
-  const canAddToCart = hasCurrentConfiguration && cartItems.length < 20;
+  const canAddToCart =
+    storeIsOpen && hasCurrentConfiguration && cartItems.length < 100;
   const total =
     cartSubtotal +
     (hasCurrentConfiguration ? currentItemSubtotal : 0) +
@@ -319,6 +331,10 @@ export function AcaiBuilder({
   }
 
   function addCurrentToCart() {
+    if (!storeIsOpen) {
+      setBuilderError("A loja está fechada e não está aceitando pedidos agora.");
+      return false;
+    }
     if (!flavor || !size) {
       setBuilderError(
         "Escolha o sabor e o tamanho para adicionar ao carrinho.",
@@ -399,6 +415,10 @@ export function AcaiBuilder({
   }
 
   function continueToDelivery() {
+    if (!storeIsOpen) {
+      setBuilderError("A loja está fechada e não está aceitando pedidos agora.");
+      return;
+    }
     if (selectedCombo && !hasCurrentConfiguration) {
       setBuilderError(
         `Escolha o sabor da porção ${comboServingIndex + 1} de ${comboServingCount}.`,
@@ -444,6 +464,13 @@ export function AcaiBuilder({
   ].join("\n");
 
   async function submitDeliveryOrder() {
+    if (!storeIsOpen) {
+      setOrderFeedback({
+        type: "error",
+        message: "A loja está fechada e não está aceitando pedidos agora.",
+      });
+      return;
+    }
     if (cartItems.length === 0) {
       setOrderFeedback({
         type: "error",
@@ -478,8 +505,9 @@ export function AcaiBuilder({
           ]
         : []),
     ].join("\n");
-    const url = `https://wa.me/5521990174473?text=${encodeURIComponent(deliveryMessage)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    const url = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(deliveryMessage)}`;
+    const whatsappWindow = window.open("about:blank", "_blank");
+    if (whatsappWindow) whatsappWindow.opener = null;
 
     setIsSubmittingOrder(true);
     setOrderFeedback(null);
@@ -518,13 +546,32 @@ export function AcaiBuilder({
         estimatedTotalCents: Math.round(total * 100),
       });
 
+      if (whatsappWindow) whatsappWindow.location.href = url;
+      else window.open(url, "_blank", "noopener,noreferrer");
+
       setOrderFeedback({
         type: "success",
         message: response.persisted
           ? "Pedido registrado. Confira e envie a mensagem aberta no WhatsApp."
           : "A API recebeu o pedido, mas ainda não o armazena. Confira e envie a mensagem no WhatsApp para concluir.",
       });
-    } catch {
+    } catch (submitError) {
+      if (submitError instanceof ApiError && submitError.status === 409) {
+        whatsappWindow?.close();
+        try {
+          onStoreStatusChange(await getStoreStatus());
+        } catch {
+          onStoreStatusChange(null);
+        }
+        setOrderFeedback({
+          type: "error",
+          message: "A loja fechou antes da confirmação. O pedido não foi enviado.",
+        });
+        return;
+      }
+
+      if (whatsappWindow) whatsappWindow.location.href = url;
+      else window.open(url, "_blank", "noopener,noreferrer");
       setOrderFeedback({
         type: "error",
         message:
@@ -813,6 +860,7 @@ export function AcaiBuilder({
               onSubmit={submitDeliveryOrder}
               orderTotal={total}
               isSubmitting={isSubmittingOrder}
+              storeIsOpen={storeIsOpen}
               orderFeedback={orderFeedback}
             />
           )}
@@ -831,6 +879,7 @@ export function AcaiBuilder({
             hasCurrentConfiguration={hasCurrentConfiguration}
             currentHasSelections={currentHasSelections}
             canAddToCart={canAddToCart && !isSubmittingOrder}
+            storeIsOpen={storeIsOpen}
             onAddToCart={addCurrentToCart}
             onClearCurrent={clearCurrentConfiguration}
             onRemoveCartItem={removeCartItem}

@@ -28,6 +28,7 @@ type DeliveryCheckoutFormProps = {
   onSubmit: () => void;
   orderTotal: number;
   isSubmitting: boolean;
+  storeIsOpen: boolean;
   orderFeedback: { type: "success" | "error"; message: string } | null;
 };
 
@@ -47,6 +48,7 @@ export function DeliveryCheckoutForm({
   onSubmit,
   orderTotal,
   isSubmitting,
+  storeIsOpen,
   orderFeedback,
 }: DeliveryCheckoutFormProps) {
   const [cepLookupMessage, setCepLookupMessage] = useState("");
@@ -337,11 +339,15 @@ export function DeliveryCheckoutForm({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !storeIsOpen}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-whatsapp px-5 text-sm font-extrabold text-white transition-colors hover:bg-whatsapp/90 disabled:cursor-wait disabled:opacity-60"
         >
           <WhatsappLogoIcon aria-hidden="true" size={20} weight="fill" />
-          {isSubmitting ? "Enviando pedido..." : "Enviar pedido pelo WhatsApp"}
+          {isSubmitting
+            ? "Enviando pedido..."
+            : storeIsOpen
+              ? "Enviar pedido pelo WhatsApp"
+              : "Loja fechada"}
         </button>
       </div>
     </form>

@@ -1,16 +1,18 @@
 import { ArrowRightIcon } from "@phosphor-icons/react";
 
-export function BrandFooter() {
+export function BrandFooter({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
   return (
     <section id="sobre" className="bg-dark px-5 py-10 text-white md:px-8">
       <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <p className="text-lg font-extrabold">
-            Um intervalo gostoso muda o dia.
-          </p>
-          <p className="mt-1 text-sm text-blush">
-            Açaí de verdade, feito com carinho em cada pedido.
-          </p>
+          <p className="text-lg font-extrabold">{title}</p>
+          <p className="mt-1 text-sm text-blush">{body}</p>
         </div>
         <a
           href="#catalogo"

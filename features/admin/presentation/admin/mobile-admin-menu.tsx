@@ -10,6 +10,7 @@ import { useActiveAdminSection } from "@/features/admin/presentation/admin/use-a
 import {
   ChartBarIcon,
   ClipboardTextIcon,
+  GearIcon,
   PackageIcon,
   TicketIcon,
 } from "@phosphor-icons/react";
@@ -19,6 +20,7 @@ const sectionIcons = {
   pedidos: ClipboardTextIcon,
   catalogo: PackageIcon,
   cupons: TicketIcon,
+  configuracoes: GearIcon,
 };
 
 export function MobileAdminMenu() {

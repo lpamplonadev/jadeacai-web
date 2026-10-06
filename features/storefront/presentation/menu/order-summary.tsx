@@ -25,6 +25,7 @@ type OrderSummaryProps = {
   hasCurrentConfiguration: boolean;
   currentHasSelections: boolean;
   canAddToCart: boolean;
+  storeIsOpen: boolean;
   onAddToCart: () => void;
   onClearCurrent: () => void;
   onRemoveCartItem: (id: string) => void;
@@ -54,6 +55,7 @@ export function OrderSummary({
   hasCurrentConfiguration,
   currentHasSelections,
   canAddToCart,
+  storeIsOpen,
   onAddToCart,
   onClearCurrent,
   onRemoveCartItem,
@@ -235,7 +237,7 @@ export function OrderSummary({
             <button
               type="button"
               onClick={onAddToCart}
-              disabled={!canAddToCart}
+              disabled={!storeIsOpen || !canAddToCart}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-blush px-4 text-sm font-extrabold text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {selectedCombo && comboServingCount > 1
@@ -254,7 +256,7 @@ export function OrderSummary({
             <button
               type="button"
               onClick={onContinueToDelivery}
-              disabled={cartItems.length === 0 && !canAddToCart}
+              disabled={!storeIsOpen || (cartItems.length === 0 && !canAddToCart)}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-crimson px-4 text-sm font-extrabold text-white transition-colors hover:bg-dark disabled:cursor-not-allowed disabled:opacity-40"
             >
               {selectedCombo && comboServingNumber < comboServingCount
@@ -268,9 +270,11 @@ export function OrderSummary({
         )}
         <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-blush">
           <CheckIcon aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
-          {checkoutStep === 1
-            ? "Na próxima etapa você informa endereço e forma de pagamento."
-            : "Confira os dados e envie seu pedido pelo WhatsApp."}
+          {!storeIsOpen
+            ? "A loja está fechada; pedidos estão pausados."
+            : checkoutStep === 1
+              ? "Na próxima etapa você informa endereço e forma de pagamento."
+              : "Confira os dados e envie seu pedido pelo WhatsApp."}
         </p>
       </aside>
 

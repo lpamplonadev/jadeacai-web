@@ -7,7 +7,13 @@ const landingNavigation = [
   { label: "Nossa história", href: "#sobre" },
 ];
 
-export function SiteHeader({ cartCount }: { cartCount: number }) {
+export function SiteHeader({
+  cartCount,
+  storeIsOpen,
+}: {
+  cartCount: number;
+  storeIsOpen: boolean;
+}) {
   return (
     <header className="bg-dark z-10000 sticky top-0 shadow-[0_4px_16px_rgba(61,15,26,0.08)] backdrop-blur">
       <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 md:px-8">
@@ -51,12 +57,22 @@ export function SiteHeader({ cartCount }: { cartCount: number }) {
           >
             Painel
           </a>
-          <a
-            href="#monte-seu-acai"
-            className="rounded-full bg-petal px-4 py-2 text-xs font-bold text-dark transition-colors hover:bg-blush sm:px-5 sm:text-sm"
-          >
-            Fazer pedido
-          </a>
+          {storeIsOpen ? (
+            <a
+              href="#monte-seu-acai"
+              className="rounded-full bg-petal px-4 py-2 text-xs font-bold text-dark transition-colors hover:bg-blush sm:px-5 sm:text-sm"
+            >
+              Fazer pedido
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-full bg-neutral-400 px-4 py-2 text-xs font-bold text-white opacity-80 sm:px-5 sm:text-sm"
+            >
+              Loja fechada
+            </button>
+          )}
         </div>
       </div>
     </header>

@@ -15,11 +15,17 @@ import type { MenuCombo } from "@/features/storefront/domain/menu-types";
 import { ProductCatalog } from "@/features/storefront/presentation/menu/product-catalog";
 import { ProductHero } from "@/features/storefront/presentation/menu/product-hero";
 import { SiteHeader } from "@/features/storefront/presentation/menu/site-header";
+import { StoreStatusBubble } from "@/features/storefront/presentation/menu/store-status-bubble";
 import { toBuilderCatalog } from "@/features/storefront/application/catalog-mapper";
 import {
   getApiHealth,
   getPublicCatalog,
+  getStoreStatus,
 } from "@/features/storefront/infrastructure/api-client";
+import {
+  defaultStoreSettings,
+  type StoreStatus,
+} from "@/shared/domain/store-settings";
 
 type ApiStatus = "checking" | "online" | "offline";
 
@@ -34,6 +40,7 @@ export default function Home() {
     useState<BuilderCatalogData | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [catalogError, setCatalogError] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<StoreStatus | null>(null);
   const heroSlideCount = 2 + Math.min(2, menuCombos.length);
 
   useEffect(() => {
@@ -85,6 +92,32 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    async function refreshStoreStatus() {
+      try {
+        const status = await getStoreStatus();
+        if (active) setStoreStatus(status);
+      } catch {
+        if (active) setStoreStatus(null);
+      }
+    }
+
+    void refreshStoreStatus();
+    const refreshTimer = window.setInterval(
+      () => void refreshStoreStatus(),
+      60_000,
+    );
+    window.addEventListener("focus", refreshStoreStatus);
+
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", refreshStoreStatus);
+    };
+  }, []);
+
   function changeSlide(direction: number) {
     setActiveSlide(
       (current) => (current + direction + heroSlideCount) % heroSlideCount,
@@ -108,9 +141,12 @@ export default function Home() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  const storeIsOpen = storeStatus?.isOpen ?? false;
+
   return (
     <div className="min-h-screen bg-cream text-text">
-      <SiteHeader cartCount={cartCount} />
+      <SiteHeader cartCount={cartCount} storeIsOpen={storeIsOpen} />
+      <StoreStatusBubble status={storeStatus} />
 
       <main id="inicio">
         <ProductHero
@@ -118,6 +154,7 @@ export default function Home() {
           products={products}
           combos={menuCombos}
           catalog={builderCatalog}
+          storeIsOpen={storeIsOpen}
           onSelectSlide={setActiveSlide}
           onChangeSlide={changeSlide}
         />
@@ -126,6 +163,7 @@ export default function Home() {
             combos={menuCombos}
             catalog={builderCatalog}
             products={products}
+              storeIsOpen={storeIsOpen}
             onChooseCombo={chooseCombo}
             onChooseSize={chooseFreeSize}
             apiStatus={apiStatus}
@@ -150,6 +188,9 @@ export default function Home() {
             onClearCombo={() => setSelectedCombo(null)}
             onCartCountChange={setCartCount}
             catalog={builderCatalog}
+            storeIsOpen={storeIsOpen}
+            whatsAppNumber={storeStatus?.settings.whatsAppNumber ?? ""}
+            onStoreStatusChange={setStoreStatus}
           />
         ) : (
           <section
@@ -162,7 +203,10 @@ export default function Home() {
               : "Carregando opções do cardápio..."}
           </section>
         )}
-        <BrandFooter />
+        <BrandFooter
+          title={storeStatus?.settings.story.title ?? defaultStoreSettings.story.title}
+          body={storeStatus?.settings.story.body ?? defaultStoreSettings.story.body}
+        />
       </main>
     </div>
   );

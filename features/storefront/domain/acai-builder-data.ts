@@ -97,7 +97,6 @@ export const additionalToppingPrice = 1;
 export const includedFruits = 1;
 export const additionalFruitPrice = 2;
 export const deliveryFee = 3;
-export const whatsappNumber = "5521990174473";
 
 export const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
