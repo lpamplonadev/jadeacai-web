@@ -49,6 +49,8 @@ export function CatalogModule() {
   });
   const [tab, setTab] = useState<CatalogTab>("items");
   const [kindFilter, setKindFilter] = useState<"all" | CatalogItemKind>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editor, setEditor] = useState<CatalogEditor | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -156,6 +158,18 @@ export function CatalogModule() {
   const visibleItems = catalog.items.filter(
     (item) => kindFilter === "all" || item.kind === kindFilter,
   );
+  const totalForTab =
+    tab === "items" ? visibleItems.length : catalog.combos.length;
+  const pageCount = Math.max(1, Math.ceil(totalForTab / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const firstVisibleEntry = totalForTab === 0 ? 0 : pageStart + 1;
+  const lastVisibleEntry = Math.min(pageStart + pageSize, totalForTab);
+  const paginatedItems = visibleItems.slice(pageStart, pageStart + pageSize);
+  const paginatedCombos = catalog.combos.slice(
+    pageStart,
+    pageStart + pageSize,
+  );
   const activeItemCount = catalog.items.filter(
     (item) => item.available && !item.deletedAt,
   ).length;
@@ -204,7 +218,10 @@ export function CatalogModule() {
               key={value}
               type="button"
               aria-pressed={tab === value}
-              onClick={() => setTab(value)}
+              onClick={() => {
+                setPage(1);
+                setTab(value);
+              }}
               className={`min-h-9 rounded px-3 text-sm font-bold ${tab === value ? "bg-[#8b1a2e] text-white" : "text-[#55554e] hover:bg-[#f3f3ef]"}`}
             >
               {label}
@@ -217,9 +234,10 @@ export function CatalogModule() {
               <span className="sr-only">Filtrar itens por tipo</span>
               <select
                 value={kindFilter}
-                onChange={(event) =>
-                  setKindFilter(event.target.value as "all" | CatalogItemKind)
-                }
+                onChange={(event) => {
+                  setPage(1);
+                  setKindFilter(event.target.value as "all" | CatalogItemKind);
+                }}
                 className="min-h-10 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm"
               >
                 <option value="all">Todos os tipos</option>
@@ -231,6 +249,24 @@ export function CatalogModule() {
               </select>
             </label>
           )}
+          <label className="flex min-h-10 items-center gap-2 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm text-[#68685f]">
+            <span>Por página</span>
+            <select
+              aria-label="Itens do catálogo por página"
+              value={pageSize}
+              onChange={(event) => {
+                setPage(1);
+                setPageSize(Number(event.target.value));
+              }}
+              className="bg-transparent text-sm text-[#33332d] outline-none"
+            >
+              {[5, 10, 25, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             onClick={() =>
@@ -281,7 +317,7 @@ export function CatalogModule() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e8e8e2]">
-                {visibleItems.map((item) => (
+                {paginatedItems.map((item) => (
                   <tr key={item.id} className="hover:bg-[#fcfcfa]">
                     <td className="px-4 py-3 font-semibold">{item.name}</td>
                     <td className="px-4 py-3 text-xs text-[#68685f]">
@@ -374,7 +410,7 @@ export function CatalogModule() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e8e8e2]">
-              {catalog.combos.map((combo) => (
+              {paginatedCombos.map((combo) => (
                 <tr key={combo.id} className="align-top hover:bg-[#fcfcfa]">
                   <td className="px-4 py-3">
                     <p className="font-semibold">{combo.name}</p>
@@ -450,6 +486,33 @@ export function CatalogModule() {
         <p className="mt-4 border border-dashed border-[#d6d6ce] bg-white px-5 py-12 text-center text-sm text-[#77776e]">
           Nenhum combo cadastrado.
         </p>
+      )}
+
+      {!loading && totalForTab > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-[#68685f]">
+          <p>
+            Mostrando {firstVisibleEntry}–{lastVisibleEntry} de {totalForTab}{" "}
+            {tab === "items" ? "itens" : "combos"}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="min-h-9 rounded-md border border-[#d6d6ce] bg-white px-3 font-bold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage >= pageCount}
+              className="min-h-9 rounded-md border border-[#d6d6ce] bg-white px-3 font-bold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
       )}
 
       {editor && (

@@ -34,6 +34,7 @@ const orderStatusBadgeStyles: Record<string, string> = {
 export function OrdersModule() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState("");
   const [orderDate, setOrderDate] = useState("");
@@ -43,8 +44,6 @@ export function OrdersModule() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const limit = 20;
-
   useEffect(() => {
     const controller = new AbortController();
 
@@ -53,7 +52,7 @@ export function OrdersModule() {
       setError("");
       const query = new URLSearchParams({
         page: String(page),
-        limit: String(limit),
+        limit: String(pageSize),
       });
       if (status) query.set("status", status);
       if (search) query.set("search", search);
@@ -85,7 +84,7 @@ export function OrdersModule() {
 
     void loadOrders();
     return () => controller.abort();
-  }, [page, status, search, orderDate, refreshKey]);
+  }, [page, pageSize, status, search, orderDate, refreshKey]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,8 +104,8 @@ export function OrdersModule() {
     setRefreshKey((value) => value + 1);
   }
 
-  const firstOrder = total === 0 ? 0 : (page - 1) * limit + 1;
-  const lastOrder = Math.min(page * limit, total);
+  const firstOrder = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastOrder = Math.min(page * pageSize, total);
   const ordersByDay = orders.reduce<Record<string, AdminOrder[]>>(
     (groups, order) => {
       (groups[order.orderDate] ??= []).push(order);
@@ -189,6 +188,24 @@ export function OrdersModule() {
             }}
             className="min-w-0 bg-transparent text-sm text-[#33332d] outline-none"
           />
+        </label>
+        <label className="flex min-h-10 items-center gap-2 rounded-md border border-[#d6d6ce] bg-white px-3 text-sm text-[#68685f]">
+          <span>Por página</span>
+          <select
+            aria-label="Pedidos por página"
+            value={pageSize}
+            onChange={(event) => {
+              setPage(1);
+              setPageSize(Number(event.target.value));
+            }}
+            className="bg-transparent text-sm text-[#33332d] outline-none"
+          >
+            {[5, 10, 25, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
         </label>
         <button
           type="submit"
@@ -318,7 +335,7 @@ export function OrdersModule() {
               <button
                 type="button"
                 onClick={() => setPage((value) => value + 1)}
-                disabled={page * limit >= total || loading}
+                disabled={page * pageSize >= total || loading}
                 className="min-h-9 rounded-md border border-[#d6d6ce] bg-white px-3 font-bold disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Próxima
