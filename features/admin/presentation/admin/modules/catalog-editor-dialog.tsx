@@ -66,6 +66,7 @@ export function CatalogEditorDialog({
   );
   const [kind, setKind] = useState<CatalogItemKind>(item?.kind ?? "topping");
   const [name, setName] = useState(item?.name ?? combo?.name ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
   const [price, setPrice] = useState(
     toPriceInput(item?.priceCents ?? combo?.priceCents ?? 0),
   );
@@ -101,8 +102,8 @@ export function CatalogEditorDialog({
     String(combo?.includedExtras ?? 0),
   );
   const [tag, setTag] = useState(combo?.tag ?? "");
-  const [imageUrl, setImageUrl] = useState(combo?.imageUrl ?? "");
-  const [imageAlt, setImageAlt] = useState(combo?.imageAlt ?? "");
+  const [imageUrl, setImageUrl] = useState(item?.imageUrl ?? combo?.imageUrl ?? "");
+  const [imageAlt, setImageAlt] = useState(item?.imageAlt ?? combo?.imageAlt ?? "");
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedImageName, setSelectedImageName] = useState("");
   const [localImagePreview, setLocalImagePreview] = useState("");
@@ -209,6 +210,9 @@ export function CatalogEditorDialog({
         ? {
             kind,
             name: name.trim(),
+          description: description.trim(),
+          imageUrl: imageUrl.trim(),
+          imageAlt: imageAlt.trim(),
             priceCents,
             available,
             sortOrder: Number(sortOrder),
@@ -356,7 +360,7 @@ export function CatalogEditorDialog({
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5 text-sm font-bold">
-                Preço ou adicional (R$)
+                {kind === "size" ? "Preço (R$)" : "Preço ou adicional (R$)"}
                 <input
                   required
                   type="number"
@@ -380,6 +384,102 @@ export function CatalogEditorDialog({
                 />
               </label>
             </div>
+            {kind === "size" && (
+              <fieldset className="space-y-4 border-y border-[#e8e8e2] py-4">
+                <legend className="text-sm font-black">
+                  Apresentação no cardápio
+                </legend>
+                <label className="block space-y-1.5 text-sm font-bold">
+                  Descrição
+                  <textarea
+                    maxLength={1200}
+                    rows={3}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    className={`${inputClassName} py-3 leading-5`}
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-bold">
+                  URL da imagem
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(event) => setImageUrl(event.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-bold">
+                  Enviar imagem do dispositivo
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploadingImage || saving}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      if (file) void uploadImage(file);
+                    }}
+                    className={`${inputClassName} file:mr-3 file:rounded file:border-0 file:bg-[#f8eeee] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#8b1a2e]`}
+                  />
+                </label>
+                <p className="text-xs text-[#68685f]">
+                  JPEG, PNG ou WebP · até 5 MB.
+                </p>
+                {selectedImageName && (
+                  <p role="status" className="text-sm font-semibold text-[#8b1a2e]">
+                    {uploadingImage
+                      ? `Enviando ${selectedImageName}...`
+                      : selectedImageFile
+                        ? `Selecionada: ${selectedImageName}`
+                        : `Imagem enviada: ${selectedImageName}`}
+                  </p>
+                )}
+                {imageUploadError && (
+                  <p role="alert" className="text-sm font-semibold text-red-800">
+                    {imageUploadError}
+                  </p>
+                )}
+                {selectedImageFile && !uploadingImage && (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void uploadImage(selectedImageFile)}
+                      className="min-h-9 text-sm font-bold text-[#8b1a2e] underline underline-offset-2"
+                    >
+                      Tentar upload novamente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelImageUpload}
+                      className="min-h-9 text-sm font-semibold text-[#55554e] underline underline-offset-2"
+                    >
+                      Cancelar arquivo
+                    </button>
+                  </div>
+                )}
+                {(localImagePreview || imageUrl) && (
+                  <div className="relative h-40 w-full overflow-hidden rounded-md border border-[#deded7] bg-[#f3f3ef]">
+                    <Image
+                      src={localImagePreview || imageUrl}
+                      alt={imageAlt || name || "Prévia do tamanho"}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 100vw, 700px"
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+                <label className="block space-y-1.5 text-sm font-bold">
+                  Texto alternativo da imagem
+                  <input
+                    maxLength={180}
+                    value={imageAlt}
+                    onChange={(event) => setImageAlt(event.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+              </fieldset>
+            )}
             <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
               <input
                 type="checkbox"

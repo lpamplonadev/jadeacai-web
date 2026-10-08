@@ -11,6 +11,9 @@ export type BuilderExtra = BuilderChoice & {
 
 export type BuilderPriceChoice = BuilderChoice & {
   price: number;
+  description?: string;
+  image?: string;
+  imageAlt?: string;
 };
 
 export type BuilderCatalogData = {

@@ -5,6 +5,9 @@ export type PublicCatalogItem = {
   key: string;
   kind: string;
   name: string;
+  description: string;
+  image: string;
+  imageAlt: string;
   priceCents: number;
   sortOrder: number;
 };

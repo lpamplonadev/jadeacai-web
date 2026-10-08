@@ -12,6 +12,9 @@ export type CatalogItem = {
   itemKey: string;
   kind: CatalogItemKind;
   name: string;
+  description: string;
+  imageUrl: string;
+  imageAlt: string;
   priceCents: number;
   available: boolean;
   sortOrder: number;

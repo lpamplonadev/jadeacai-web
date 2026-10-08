@@ -95,8 +95,12 @@ export function ProductCatalog({
         id: `custom-${size.id}`,
         type: "custom" as const,
         name: `Açaí ${size.name}`,
-        description: "Escolha o sabor e monte os complementos do seu jeito.",
-        details: `Monte seu açaí de ${size.name} com o sabor e os complementos que preferir. As opções e preços aparecem antes de adicionar ao pedido.`,
+        description:
+          size.description?.trim() ||
+          "Escolha o sabor e monte os complementos do seu jeito.",
+        details:
+          size.description?.trim() ||
+          `Monte seu açaí de ${size.name} com o sabor e os complementos que preferir. As opções e preços aparecem antes de adicionar ao pedido.`,
         highlights: [
           `Tamanho ${size.name}`,
           `${catalog.includedToppings} acompanhamentos incluídos`,
@@ -105,8 +109,8 @@ export function ProductCatalog({
         ],
         price: size.price,
         tag: "Monte do seu jeito",
-        image: image?.image ?? "",
-        imageAlt: image?.imageAlt ?? size.name,
+        image: size.image || image?.image || "",
+        imageAlt: size.imageAlt || image?.imageAlt || size.name,
         rank: index,
         choose: () =>
           onChooseProduct({
@@ -120,8 +124,8 @@ export function ProductCatalog({
             includedFruits: catalog.includedFruits,
             includedExtras: 0,
             tag: "Monte do seu jeito",
-            image: image?.image ?? "",
-            imageAlt: image?.imageAlt ?? size.name,
+            image: size.image || image?.image || "",
+            imageAlt: size.imageAlt || image?.imageAlt || size.name,
             items: [
               { id: size.id, kind: "size", name: size.name, quantity: 1 },
             ],

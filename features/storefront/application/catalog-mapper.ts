@@ -31,7 +31,16 @@ export function toBuilderCatalog(catalog: PublicCatalog): BuilderCatalogData {
     catalog.rules[key] ?? fallback;
   return {
     flavors: asChoices(itemsOfKind(catalog, "flavor")),
-    cupSizes: asPricedChoices(itemsOfKind(catalog, "size")),
+    cupSizes: itemsOfKind(catalog, "size").map(
+      ({ id, name, priceCents, description, image, imageAlt }) => ({
+        id,
+        name,
+        price: priceCents / 100,
+        description,
+        image,
+        imageAlt,
+      }),
+    ),
     toppings: asPricedChoices(itemsOfKind(catalog, "topping")),
     sauces: asChoices(itemsOfKind(catalog, "sauce")),
     condimentPositions: asPricedChoices(
