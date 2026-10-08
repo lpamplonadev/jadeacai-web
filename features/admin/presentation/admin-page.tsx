@@ -1,5 +1,4 @@
 import { SignOutIcon } from "@phosphor-icons/react/dist/ssr";
-import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { AdminLoginForm } from "@/features/admin/presentation/admin/admin-login-form";
@@ -30,16 +29,10 @@ export default async function AdminPage() {
           <div className="absolute -bottom-36 -left-24 h-96 w-96 rounded-full border border-white/10" />
           <Link
             href="/"
-            aria-label="Jade's Açaí, voltar à loja"
-            className="relative inline-flex w-fit items-center"
+            className="relative sm:text-2xl text-center text-lg font-extrabold tracking-wide"
+            style={{ fontFamily: "Pacifico, cursive" }}
           >
-            <Image
-              src="/Logo.png"
-              alt=""
-              width={512}
-              height={512}
-              className="h-20 w-20 object-contain sm:h-24 sm:w-24"
-            />
+            Jade&apos;s Açaí
           </Link>
           <div className="relative my-10 max-w-md md:my-0">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#f2a4a7]">
@@ -87,16 +80,10 @@ export default async function AdminPage() {
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 self-start border-r border-coral/40 bg-crimson px-5 py-7 md:flex md:flex-col">
           <Link
             href="/"
-            aria-label="Jade's Açaí, voltar à loja"
-            className="inline-flex w-fit items-center"
+            className="text-xl font-black tracking-wide text-petal "
+            style={{ fontFamily: "Pacifico, cursive" }}
           >
-            <Image
-              src="/Logo.png"
-              alt=""
-              width={512}
-              height={512}
-              className="h-14 w-14 object-contain"
-            />
+            Jade&apos;s Açaí
           </Link>
           <p className="mt-10 px-3 text-[10px] font-extrabold uppercase tracking-[0.16em] text-petal">
             Operação
@@ -118,16 +105,15 @@ export default async function AdminPage() {
         <section className="min-w-0 flex-1 px-5 py-6 pb-24 sm:px-8 sm:py-8 sm:pb-24 lg:px-11 md:pb-8">
           <header className="flex items-start justify-between gap-4 border-b border-[#deded7] pb-6">
             <div>
-              <div className="flex items-center gap-2 text-xs font-extrabold tracking-[0.16em] text-[#8b1a2e]">
-                <Image
-                  src="/Logo.png"
-                  alt=""
-                  width={512}
-                  height={512}
-                  className="h-11 w-11 object-contain"
-                />
-                <span>Administração</span>
-              </div>
+              <p className="text-xs font-extrabold tracking-[0.16em] text-[#8b1a2e]">
+                <span
+                  style={{ fontFamily: "Pacifico, cursive" }}
+                  className="text-xl"
+                >
+                  Jade&apos;s Açaí
+                </span>
+                {""} | Administração
+              </p>
               <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                 Visão geral
               </h1>

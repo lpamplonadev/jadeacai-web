@@ -1,5 +1,4 @@
 import { ShoppingCartIcon } from "@phosphor-icons/react";
-import Image from "next/image";
 
 const landingNavigation = [
   { label: "Início", href: "#inicio" },
@@ -23,14 +22,12 @@ export function SiteHeader({
           className="flex items-center gap-3"
           aria-label="Jade's Açaí, início"
         >
-          <Image
-            src="/Logo.png"
-            alt=""
-            width={512}
-            height={512}
-            priority
-            className="h-14 w-14 object-contain sm:h-[68px] sm:w-[68px]"
-          />
+          <span
+            style={{ fontFamily: "Pacifico, cursive" }}
+            className="text-xl sm:text-4xl font-extrabold tracking-tight text-cream"
+          >
+            Jade&apos;s Açaí
+          </span>
         </a>
         <nav aria-label="Navegação principal" className="hidden gap-6 md:flex">
           {landingNavigation.map(({ label, href }) => (
