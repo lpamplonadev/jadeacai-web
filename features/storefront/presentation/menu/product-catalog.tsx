@@ -460,7 +460,7 @@ export function ProductCatalog({
                       <h3 className="line-clamp-2 min-h-8 text-xs font-bold leading-4 text-text sm:mt-1 sm:min-h-12 sm:text-base sm:leading-normal">
                         {product.name}
                       </h3>
-                      <p className="hidden min-h-10 text-sm leading-5 text-crimson/75 sm:block">
+                      <p className="line-clamp-2 min-h-8 text-[10px] leading-4 text-crimson/75 sm:min-h-10 sm:text-sm sm:leading-5">
                         {product.description}
                       </p>
                       <div className="mt-2 flex flex-col items-start justify-between gap-2 border-t border-petal pt-2 sm:mt-4 sm:flex-row sm:items-center sm:gap-3 sm:pt-3">
