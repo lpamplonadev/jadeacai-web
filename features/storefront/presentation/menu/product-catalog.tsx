@@ -430,11 +430,11 @@ export function ProductCatalog({
                             aria-hidden="true"
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            className="scale-110 object-cover opacity-60 blur-xl"
+                            className="scale-110 object-cover opacity-75 blur-lg"
                           />
                           <div
                             aria-hidden="true"
-                            className="absolute inset-0 bg-cream/25"
+                            className="absolute inset-0 bg-cream/10"
                           />
                           <Image
                             src={product.image}
