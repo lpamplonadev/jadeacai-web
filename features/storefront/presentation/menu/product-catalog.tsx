@@ -409,7 +409,7 @@ export function ProductCatalog({
           </div>
 
           {sortedProducts.length ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
               {sortedProducts.map((product) => (
                 <article
                   key={product.id}
@@ -421,7 +421,7 @@ export function ProductCatalog({
                     aria-label={`Ver detalhes de ${product.name}`}
                     className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-crimson"
                   >
-                    <div className="relative h-48 overflow-hidden bg-petal">
+                    <div className="relative h-24 overflow-hidden bg-petal sm:h-48">
                       {product.image && (
                         <>
                           <Image
@@ -445,36 +445,37 @@ export function ProductCatalog({
                           />
                         </>
                       )}
-                      <span className="absolute left-3 top-3 z-20 rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson">
+                      <span className="absolute left-2 top-2 z-20 hidden rounded-full bg-cream/95 px-3 py-1 text-[11px] font-bold text-crimson sm:left-3 sm:top-3 sm:inline">
                         {product.tag}
                       </span>
                     </div>
-                    <div className="p-4">
-                      <p className="text-[11px] font-extrabold uppercase text-crimson">
+                    <div className="p-2 sm:p-4">
+                      <p className="hidden text-[11px] font-extrabold uppercase text-crimson sm:block">
                         {product.type === "custom"
                           ? "Monte o seu"
                           : product.type === "gourmet"
                             ? "Gourmet"
                             : "Combo"}
                       </p>
-                      <h3 className="mt-1 min-h-12 font-bold text-text">
+                      <h3 className="line-clamp-2 min-h-8 text-xs font-bold leading-4 text-text sm:mt-1 sm:min-h-12 sm:text-base sm:leading-normal">
                         {product.name}
                       </h3>
-                      <p className="min-h-10 text-sm leading-5 text-crimson/75">
+                      <p className="hidden min-h-10 text-sm leading-5 text-crimson/75 sm:block">
                         {product.description}
                       </p>
-                      <div className="mt-4 flex items-center justify-between gap-3 border-t border-petal pt-3">
-                        <span className="text-lg font-extrabold text-crimson">
+                      <div className="mt-2 flex flex-col items-start justify-between gap-2 border-t border-petal pt-2 sm:mt-4 sm:flex-row sm:items-center sm:gap-3 sm:pt-3">
+                        <span className="text-sm font-extrabold leading-tight text-crimson sm:text-lg">
                           {product.pricePrefix && (
-                            <span className="block text-[10px] font-bold uppercase tracking-wide">
+                            <span className="block text-[8px] font-bold uppercase tracking-wide sm:text-[10px]">
                               {product.pricePrefix}
                             </span>
                           )}
                           {currency.format(product.price)}
                         </span>
-                        <span className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-crimson px-3 text-xs font-bold text-white transition-colors group-hover:bg-dark">
-                          Ver detalhes
-                          <ArrowRightIcon aria-hidden="true" size={15} />
+                        <span className="inline-flex min-h-8 w-full items-center justify-center gap-1 rounded-md bg-crimson px-1.5 text-[10px] font-bold text-white transition-colors group-hover:bg-dark sm:min-h-10 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-xs">
+                          <span className="sm:hidden">Ver mais</span>
+                          <span className="hidden sm:inline">Ver detalhes</span>
+                          <ArrowRightIcon aria-hidden="true" size={14} className="hidden sm:inline" />
                         </span>
                       </div>
                     </div>
