@@ -97,14 +97,14 @@ export function GeneralSettingsModule() {
       deliveryZones: [
         ...current.deliveryZones,
         {
-          name: `Nova zona ${current.deliveryZones.length + 1}`,
+          name: "",
           neighborhoods: [],
-          feeCents: 300,
-          enabled: true,
+          feeCents: 0,
+          enabled: false,
         },
       ],
     }));
-    setDeliveryFeeDrafts((current) => [...current, "3.00"]);
+    setDeliveryFeeDrafts((current) => [...current, ""]);
   }
 
   function removeDeliveryZone(index: number) {
@@ -131,14 +131,17 @@ export function GeneralSettingsModule() {
         body: JSON.stringify({
           ...settings,
           deliveryZones: settings.deliveryZones.map((zone, index) => {
-            const fee = Number.parseFloat(deliveryFeeDrafts[index] ?? "");
+            const feeInput = (deliveryFeeDrafts[index] ?? "")
+              .trim()
+              .replace(",", ".");
+            const fee = feeInput ? Number(feeInput) : Number.NaN;
             return {
               ...zone,
               name: zone.name.trim(),
               neighborhoods: zone.neighborhoods
                 .map((neighborhood) => neighborhood.trim())
                 .filter(Boolean),
-              feeCents: Number.isFinite(fee)
+              feeCents: Number.isFinite(fee) && fee >= 0
                 ? Math.round(fee * 100)
                 : zone.feeCents,
             };
@@ -449,18 +452,21 @@ export function GeneralSettingsModule() {
                   <label className="space-y-1.5 text-sm font-semibold">
                     Taxa (R$)
                     <input
-                      type="number"
-                      min="0"
-                      max="1000"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={7}
+                      pattern="[0-9]+([.,][0-9]{1,2})?"
                       required
-                      value={(zone.feeCents / 100).toFixed(2)}
+                      value={
+                        deliveryFeeDrafts[index] ??
+                        (zone.feeCents / 100).toFixed(2)
+                      }
                       onChange={(event) =>
-                        updateDeliveryZone(index, {
-                          feeCents: Math.round(
-                            Number(event.target.value || 0) * 100,
+                        setDeliveryFeeDrafts((current) =>
+                          current.map((fee, feeIndex) =>
+                            feeIndex === index ? event.target.value : fee,
                           ),
-                        })
+                        )
                       }
                       className={textInputClassName}
                     />

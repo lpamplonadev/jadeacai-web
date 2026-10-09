@@ -59,38 +59,7 @@ export const defaultStoreSettings: StoreSettings = {
   whatsAppNumber: "5521990174473",
   manualOverride: null,
   deliveryOriginAddress: "Rua Nepomuceno, 12, Realengo, Rio de Janeiro - RJ",
-  deliveryZones: [
-    {
-      name: "Realengo",
-      neighborhoods: ["Realengo"],
-      feeCents: 300,
-      enabled: true,
-    },
-    {
-      name: "Padre Miguel",
-      neighborhoods: ["Padre Miguel"],
-      feeCents: 0,
-      enabled: false,
-    },
-    {
-      name: "Bangu",
-      neighborhoods: ["Bangu"],
-      feeCents: 0,
-      enabled: false,
-    },
-    {
-      name: "Sulacap",
-      neighborhoods: ["Sulacap"],
-      feeCents: 0,
-      enabled: false,
-    },
-    {
-      name: "Magalhães",
-      neighborhoods: ["Magalhães Bastos"],
-      feeCents: 0,
-      enabled: false,
-    },
-  ],
+  deliveryZones: [],
 };
 
 export function findDeliveryZone(
