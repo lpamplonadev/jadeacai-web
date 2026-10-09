@@ -544,8 +544,9 @@ export function AcaiBuilder({
 
       const trackingHref = `/pedido/${encodeURIComponent(response.orderId)}`;
       const whatsAppMessage = [
-        `Olá! Acabei de registrar o pedido #${response.orderNumber} pelo site.`,
-        `Acompanhe o status: ${window.location.origin}${trackingHref}`,
+        deliveryMessage,
+        "",
+        `Acompanhe seu pedido: ${window.location.origin}${trackingHref}`,
       ].join("\n");
       const whatsAppHref = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(whatsAppMessage)}`;
 
