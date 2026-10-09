@@ -51,12 +51,12 @@ export function SiteHeader({
             <span className="text-xs font-extrabold">{cartCount}</span>
             <span className="sr-only sm:not-sr-only sm:text-xs sm:font-bold">Sacola</span>
           </a>
-          <a
+          {/* <a
             href="/admin"
             className="text-xs font-extrabold text-cream transition-colors hover:text-blush sm:text-sm"
           >
             Painel
-          </a>
+          </a> */}
           {storeIsOpen ? (
             <a
               href="#monte-seu-acai"
