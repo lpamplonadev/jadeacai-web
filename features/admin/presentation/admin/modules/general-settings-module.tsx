@@ -26,6 +26,7 @@ async function readError(response: Response) {
 export function GeneralSettingsModule() {
   const [storeStatus, setStoreStatus] = useState<StoreStatus | null>(null);
   const [settings, setSettings] = useState<StoreSettings>(defaultStoreSettings);
+  const [deliveryFeeDrafts, setDeliveryFeeDrafts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingOverride, setSavingOverride] = useState(false);
@@ -45,6 +46,11 @@ export function GeneralSettingsModule() {
         const result = (await response.json()) as StoreStatus;
         setStoreStatus(result);
         setSettings(result.settings);
+        setDeliveryFeeDrafts(
+          result.settings.deliveryZones.map((zone) =>
+            (zone.feeCents / 100).toFixed(2),
+          ),
+        );
       } catch (loadError) {
         if (!controller.signal.aborted) {
           setError(
@@ -98,6 +104,7 @@ export function GeneralSettingsModule() {
         },
       ],
     }));
+    setDeliveryFeeDrafts((current) => [...current, "3.00"]);
   }
 
   function removeDeliveryZone(index: number) {
@@ -107,6 +114,9 @@ export function GeneralSettingsModule() {
         (_, zoneIndex) => zoneIndex !== index,
       ),
     }));
+    setDeliveryFeeDrafts((current) =>
+      current.filter((_, zoneIndex) => zoneIndex !== index),
+    );
   }
 
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
@@ -120,19 +130,30 @@ export function GeneralSettingsModule() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...settings,
-          deliveryZones: settings.deliveryZones.map((zone) => ({
-            ...zone,
-            name: zone.name.trim(),
-            neighborhoods: zone.neighborhoods
-              .map((neighborhood) => neighborhood.trim())
-              .filter(Boolean),
-          })),
+          deliveryZones: settings.deliveryZones.map((zone, index) => {
+            const fee = Number.parseFloat(deliveryFeeDrafts[index] ?? "");
+            return {
+              ...zone,
+              name: zone.name.trim(),
+              neighborhoods: zone.neighborhoods
+                .map((neighborhood) => neighborhood.trim())
+                .filter(Boolean),
+              feeCents: Number.isFinite(fee)
+                ? Math.round(fee * 100)
+                : zone.feeCents,
+            };
+          }),
         }),
       });
       if (!response.ok) throw new Error(await readError(response));
       const result = (await response.json()) as StoreStatus;
       setStoreStatus(result);
       setSettings(result.settings);
+      setDeliveryFeeDrafts(
+        result.settings.deliveryZones.map((zone) =>
+          (zone.feeCents / 100).toFixed(2),
+        ),
+      );
       setFeedback("Configurações salvas.");
     } catch (saveError) {
       setError(
@@ -159,6 +180,11 @@ export function GeneralSettingsModule() {
       const result = (await response.json()) as StoreStatus;
       setStoreStatus(result);
       setSettings(result.settings);
+      setDeliveryFeeDrafts(
+        result.settings.deliveryZones.map((zone) =>
+          (zone.feeCents / 100).toFixed(2),
+        ),
+      );
       setFeedback(
         manualOverride === null
           ? "Funcionamento automático ativado."
@@ -390,7 +416,7 @@ export function GeneralSettingsModule() {
             <div className="mt-4 divide-y divide-[#ecece6]">
               {settings.deliveryZones.map((zone, index) => (
                 <div
-                  key={`${zone.name}-${index}`}
+                  key={index}
                   className="grid gap-3 py-4 sm:grid-cols-2 lg:grid-cols-[minmax(140px,0.8fr)_minmax(220px,1.5fr)_140px_auto_auto] lg:items-end"
                 >
                   <label className="space-y-1.5 text-sm font-semibold">
@@ -414,7 +440,6 @@ export function GeneralSettingsModule() {
                         updateDeliveryZone(index, {
                           neighborhoods: event.target.value
                             .split(",")
-                            .map((neighborhood) => neighborhood.trim()),
                         })
                       }
                       placeholder="Realengo, Padre Miguel"
