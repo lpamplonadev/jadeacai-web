@@ -128,6 +128,9 @@ export type CreateOrderResponse = {
   orderId: string;
   orderNumber: number;
   orderDate: string;
+  deliveryZoneName: string;
+  deliveryFeeCents: number;
+  estimatedTotalCents: number;
 };
 
 export type OrderStatus =

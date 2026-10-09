@@ -32,7 +32,8 @@ type OrderSummaryProps = {
   flavorName: string | null;
   sizeName: string | null;
   comboPrice: number;
-  deliveryFee: number;
+  deliveryFee: number | null;
+  deliveryZoneName: string | null;
   total: number;
   selectedToppingCount: number;
   sauceSummary: string;
@@ -63,6 +64,7 @@ export function OrderSummary({
   sizeName,
   comboPrice,
   deliveryFee,
+  deliveryZoneName,
   total,
   selectedToppingCount,
   sauceSummary,
@@ -77,6 +79,9 @@ export function OrderSummary({
 }: OrderSummaryProps) {
   const [summaryReached, setSummaryReached] = useState(false);
   const summaryRef = useRef<HTMLElement | null>(null);
+  const formattedTotal = deliveryZoneName
+    ? currency.format(total)
+    : "A calcular";
 
   useEffect(() => {
     let frame = 0;
@@ -222,14 +227,18 @@ export function OrderSummary({
         )}
         <div className="flex justify-between gap-4 border-t border-white/20 pt-4 text-sm">
           <span className="text-blush">Taxa de entrega</span>
-          <span>{currency.format(deliveryFee)}</span>
+          <span>
+            {deliveryZoneName && deliveryFee !== null
+              ? currency.format(deliveryFee)
+              : "A calcular"}
+          </span>
         </div>
         <div className="flex items-end justify-between gap-4 py-5">
           <span className="text-sm font-semibold text-blush">
             Total estimado
           </span>
           <output aria-live="polite" className="text-3xl font-black text-white">
-            {currency.format(total)}
+            {formattedTotal}
           </output>
         </div>
         {checkoutStep === 1 && (
@@ -281,7 +290,7 @@ export function OrderSummary({
       {!summaryReached && (
         <a
           href="#order-summary"
-          aria-label={`Valor atual ${currency.format(total)}. Toque para ver os detalhes do pedido.`}
+          aria-label={`Valor atual ${formattedTotal}. Toque para ver os detalhes do pedido.`}
           className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-40 flex min-h-[68px] items-center justify-between gap-4 rounded-md bg-dark px-5 py-3 text-white shadow-[0_8px_28px_rgba(61,15,26,0.28)] md:hidden"
         >
           <span className="min-w-0">
@@ -298,7 +307,7 @@ export function OrderSummary({
             aria-live="polite"
             className="shrink-0 text-xl font-black text-white"
           >
-            {currency.format(total)}
+            {formattedTotal}
           </output>
         </a>
       )}

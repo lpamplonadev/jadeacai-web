@@ -52,6 +52,5 @@ export function toBuilderCatalog(catalog: PublicCatalog): BuilderCatalogData {
     includedFruits: rule("included_fruits", 1),
     additionalToppingPrice: rule("additional_topping_price_cents", 100) / 100,
     additionalFruitPrice: rule("additional_fruit_price_cents", 200) / 100,
-    deliveryFee: rule("delivery_fee_cents", 300) / 100,
   };
 }

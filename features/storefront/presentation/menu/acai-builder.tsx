@@ -25,7 +25,11 @@ import type {
   CreateOrderLine,
   OrderAcaiConfiguration,
 } from "@/features/storefront/domain/order";
-import type { StoreStatus } from "@/shared/domain/store-settings";
+import {
+  findDeliveryZone,
+  type DeliveryZone,
+  type StoreStatus,
+} from "@/shared/domain/store-settings";
 
 type BuilderCartItem = CreateOrderLine & { description: string };
 
@@ -46,6 +50,7 @@ export function AcaiBuilder({
   onClearProduct,
   onCartCountChange,
   catalog,
+  deliveryZones,
   storeIsOpen,
   whatsAppNumber,
   onStoreStatusChange,
@@ -54,6 +59,7 @@ export function AcaiBuilder({
   onClearProduct: () => void;
   onCartCountChange: (count: number) => void;
   catalog: BuilderCatalogData;
+  deliveryZones: DeliveryZone[];
   storeIsOpen: boolean;
   whatsAppNumber: string;
   onStoreStatusChange: (status: StoreStatus | null) => void;
@@ -63,7 +69,6 @@ export function AcaiBuilder({
     additionalToppingPrice,
     condimentPositions,
     cupSizes,
-    deliveryFee,
     extras,
     flavors,
     fruits,
@@ -223,6 +228,11 @@ export function AcaiBuilder({
     (subtotal, item) => subtotal + item.estimatedSubtotalCents / 100,
     0,
   );
+  const deliveryZone = findDeliveryZone(
+    deliveryZones,
+    deliveryDetails.neighborhood,
+  );
+  const deliveryFee = deliveryZone ? deliveryZone.feeCents / 100 : null;
   const hasCurrentConfiguration = Boolean(flavor && size);
   const currentHasSelections = Boolean(
     selectedFlavor ||
@@ -237,7 +247,7 @@ export function AcaiBuilder({
   const total =
     cartSubtotal +
     (hasCurrentConfiguration ? currentItemSubtotal : 0) +
-    deliveryFee;
+    (deliveryFee ?? 0);
 
   function choicePriceLabel(
     choice: BuilderChoice,
@@ -435,43 +445,29 @@ export function AcaiBuilder({
     goToStep(2);
   }
 
-  const orderMessage = [
-    "Olá! Quero fazer um pedido na Jade:",
-    ...cartItems.flatMap((item, index) => [
-      `Item ${index + 1}: ${item.name}`,
-      item.description,
-      `Subtotal: ${currency.format(item.estimatedSubtotalCents / 100)}`,
-      "",
-    ]),
-    `Subtotal dos itens: ${currency.format(cartSubtotal)}`,
-    `Taxa de entrega: ${currency.format(deliveryFee)}`,
-    `Total estimado: ${currency.format(total)}`,
-    ...(deliveryDetails.notes.trim()
-      ? [`Observações: ${deliveryDetails.notes.trim()}`]
-      : []),
-  ].join("\n");
-
-  async function submitDeliveryOrder() {
-    if (!storeIsOpen) {
-      setOrderFeedback({
-        type: "error",
-        message: "A loja está fechada e não está aceitando pedidos agora.",
-      });
-      return;
-    }
-    if (cartItems.length === 0) {
-      setOrderFeedback({
-        type: "error",
-        message: "Adicione um açaí ao carrinho antes de enviar.",
-      });
-      return;
-    }
+  function buildDeliveryMessage(fee: number, estimatedTotal: number) {
+    const orderMessage = [
+      "Olá! Quero fazer um pedido na Jade:",
+      ...cartItems.flatMap((item, index) => [
+        `Item ${index + 1}: ${item.name}`,
+        item.description,
+        `Subtotal: ${currency.format(item.estimatedSubtotalCents / 100)}`,
+        "",
+      ]),
+      `Subtotal dos itens: ${currency.format(cartSubtotal)}`,
+      `Taxa de entrega: ${currency.format(fee)}`,
+      `Total estimado: ${currency.format(estimatedTotal)}`,
+      ...(deliveryDetails.notes.trim()
+        ? [`Observações: ${deliveryDetails.notes.trim()}`]
+        : []),
+    ].join("\n");
     const paymentNames: Record<string, string> = {
       pix: "Pix",
       cash: "Dinheiro",
       card: "Cartão na entrega",
     };
-    const deliveryMessage = [
+
+    return [
       orderMessage,
       "",
       "Dados para entrega:",
@@ -493,7 +489,33 @@ export function AcaiBuilder({
           ]
         : []),
     ].join("\n");
-    const manualWhatsAppUrl = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(deliveryMessage)}`;
+  }
+
+  async function submitDeliveryOrder() {
+    if (!storeIsOpen) {
+      setOrderFeedback({
+        type: "error",
+        message: "A loja está fechada e não está aceitando pedidos agora.",
+      });
+      return;
+    }
+    if (cartItems.length === 0) {
+      setOrderFeedback({
+        type: "error",
+        message: "Adicione um açaí ao carrinho antes de enviar.",
+      });
+      return;
+    }
+    if (!deliveryZone) {
+      setOrderFeedback({
+        type: "error",
+        message: deliveryDetails.neighborhood.trim()
+          ? `Ainda não temos entrega cadastrada para ${deliveryDetails.neighborhood}. Confira o bairro ou consulte a loja.`
+          : "Informe o CEP para calcular a taxa de entrega.",
+      });
+      return;
+    }
+    const manualWhatsAppUrl = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(buildDeliveryMessage(deliveryFee ?? 0, total))}`;
 
     setIsSubmittingOrder(true);
     setOrderFeedback(null);
@@ -542,9 +564,14 @@ export function AcaiBuilder({
         return;
       }
 
+      const confirmedDeliveryMessage = buildDeliveryMessage(
+        response.deliveryFeeCents / 100,
+        response.estimatedTotalCents / 100,
+      );
+
       const trackingHref = `/pedido/${encodeURIComponent(response.orderId)}`;
       const whatsAppMessage = [
-        deliveryMessage,
+        confirmedDeliveryMessage,
         "",
         `Acompanhe seu pedido: ${window.location.origin}${trackingHref}`,
       ].join("\n");
@@ -559,6 +586,14 @@ export function AcaiBuilder({
         whatsAppHref,
       });
     } catch (submitError) {
+      if (submitError instanceof ApiError && submitError.status === 422) {
+        setOrderFeedback({
+          type: "error",
+          message:
+            "Ainda não atendemos esse bairro. Confira o CEP e o bairro informado.",
+        });
+        return;
+      }
       if (submitError instanceof ApiError && submitError.status === 409) {
         try {
           onStoreStatusChange(await getStoreStatus());
@@ -887,6 +922,8 @@ export function AcaiBuilder({
               onBack={() => goToStep(1)}
               onSubmit={submitDeliveryOrder}
               orderTotal={total}
+              deliveryZoneName={deliveryZone?.name ?? null}
+              deliveryFee={deliveryFee}
               isSubmitting={isSubmittingOrder}
               storeIsOpen={storeIsOpen}
               orderFeedback={orderFeedback}
@@ -915,6 +952,7 @@ export function AcaiBuilder({
             sizeName={size?.name ?? null}
             comboPrice={comboPrice}
             deliveryFee={deliveryFee}
+            deliveryZoneName={deliveryZone?.name ?? null}
             total={total}
             selectedToppingCount={selectedToppings.length}
             sauceSummary={

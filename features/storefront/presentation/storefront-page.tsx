@@ -191,6 +191,10 @@ export default function Home() {
             onClearProduct={() => setSelectedProduct(null)}
             onCartCountChange={setCartCount}
             catalog={builderCatalog}
+            deliveryZones={
+              storeStatus?.settings.deliveryZones ??
+              defaultStoreSettings.deliveryZones
+            }
             storeIsOpen={storeIsOpen}
             whatsAppNumber={storeStatus?.settings.whatsAppNumber ?? ""}
             onStoreStatusChange={setStoreStatus}

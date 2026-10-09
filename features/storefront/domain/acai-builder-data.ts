@@ -28,7 +28,6 @@ export type BuilderCatalogData = {
   includedFruits: number;
   additionalToppingPrice: number;
   additionalFruitPrice: number;
-  deliveryFee: number;
 };
 
 export type SelectionGroup = "toppings" | "fruits" | "extras";
@@ -99,7 +98,6 @@ export const includedToppings = 6;
 export const additionalToppingPrice = 1;
 export const includedFruits = 1;
 export const additionalFruitPrice = 2;
-export const deliveryFee = 3;
 
 export const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",

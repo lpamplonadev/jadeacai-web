@@ -16,6 +16,13 @@ export type OperatingHours = {
   closesAt: string;
 };
 
+export type DeliveryZone = {
+  name: string;
+  neighborhoods: string[];
+  feeCents: number;
+  enabled: boolean;
+};
+
 export type StoreSettings = {
   weeklyHours: Record<StoreWeekday, OperatingHours>;
   story: {
@@ -24,6 +31,8 @@ export type StoreSettings = {
   };
   whatsAppNumber: string;
   manualOverride: boolean | null;
+  deliveryOriginAddress: string;
+  deliveryZones: DeliveryZone[];
 };
 
 export type StoreStatus = {
@@ -49,4 +58,36 @@ export const defaultStoreSettings: StoreSettings = {
   },
   whatsAppNumber: "5521990174473",
   manualOverride: null,
+  deliveryOriginAddress: "Rua Nepomuceno, 12, Realengo, Rio de Janeiro - RJ",
+  deliveryZones: [
+    {
+      name: "Realengo",
+      neighborhoods: ["Realengo"],
+      feeCents: 300,
+      enabled: true,
+    },
+  ],
 };
+
+export function findDeliveryZone(
+  deliveryZones: DeliveryZone[],
+  neighborhood: string,
+) {
+  const normalizedNeighborhood = normalizeNeighborhood(neighborhood);
+  if (!normalizedNeighborhood) return null;
+
+  return (
+    deliveryZones.find(
+      (zone) =>
+        zone.enabled &&
+        zone.neighborhoods.some(
+          (candidate) =>
+            normalizeNeighborhood(candidate) === normalizedNeighborhood,
+        ),
+    ) ?? null
+  );
+}
+
+function normalizeNeighborhood(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+}

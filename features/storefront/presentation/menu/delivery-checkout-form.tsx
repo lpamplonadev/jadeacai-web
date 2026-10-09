@@ -4,6 +4,7 @@ import {
   CheckIcon,
   WhatsappLogoIcon,
 } from "@phosphor-icons/react";
+import { currency } from "@/features/storefront/domain/acai-builder-data";
 import { getCepAddress } from "@/features/storefront/infrastructure/cep-api";
 import {
   brazilianMobilePhonePattern,
@@ -31,6 +32,8 @@ type DeliveryCheckoutFormProps = {
   onBack: () => void;
   onSubmit: () => void;
   orderTotal: number;
+  deliveryZoneName: string | null;
+  deliveryFee: number | null;
   isSubmitting: boolean;
   storeIsOpen: boolean;
   orderFeedback: {
@@ -57,6 +60,8 @@ export function DeliveryCheckoutForm({
   onBack,
   onSubmit,
   orderTotal,
+  deliveryZoneName,
+  deliveryFee,
   isSubmitting,
   storeIsOpen,
   orderFeedback,
@@ -258,6 +263,17 @@ export function DeliveryCheckoutForm({
               placeholder="Seu bairro"
               className={inputClassName}
             />
+            {details.neighborhood.trim() && (
+              <span
+                role="status"
+                aria-live="polite"
+                className={`block text-xs font-semibold ${deliveryZoneName ? "text-green-800" : "text-destructive"}`}
+              >
+                {deliveryZoneName && deliveryFee !== null
+                  ? `${deliveryZoneName} · taxa de entrega ${currency.format(deliveryFee)}`
+                  : "Ainda não atendemos este bairro."}
+              </span>
+            )}
           </label>
           <label className="space-y-1.5 text-sm font-semibold text-text">
             Complemento{" "}
@@ -399,7 +415,7 @@ export function DeliveryCheckoutForm({
         </button>
         <button
           type="submit"
-          disabled={isSubmitting || !storeIsOpen}
+          disabled={isSubmitting || !storeIsOpen || !deliveryZoneName}
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-crimson px-5 text-sm font-extrabold text-white transition-colors hover:bg-dark disabled:cursor-wait disabled:opacity-60"
         >
           <CheckIcon aria-hidden="true" size={19} weight="bold" />

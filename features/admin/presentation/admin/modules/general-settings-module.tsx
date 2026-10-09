@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { requestAdminApi } from "@/features/admin/infrastructure/admin-api";
 import {
   defaultStoreSettings,
   storeWeekdays,
   type OperatingHours,
+  type DeliveryZone,
   type StoreSettings,
   type StoreStatus,
   type StoreWeekday,
@@ -74,6 +76,39 @@ export function GeneralSettingsModule() {
     }));
   }
 
+  function updateDeliveryZone(index: number, patch: Partial<DeliveryZone>) {
+    setSettings((current) => ({
+      ...current,
+      deliveryZones: current.deliveryZones.map((zone, zoneIndex) =>
+        zoneIndex === index ? { ...zone, ...patch } : zone,
+      ),
+    }));
+  }
+
+  function addDeliveryZone() {
+    setSettings((current) => ({
+      ...current,
+      deliveryZones: [
+        ...current.deliveryZones,
+        {
+          name: `Nova zona ${current.deliveryZones.length + 1}`,
+          neighborhoods: [],
+          feeCents: 300,
+          enabled: true,
+        },
+      ],
+    }));
+  }
+
+  function removeDeliveryZone(index: number) {
+    setSettings((current) => ({
+      ...current,
+      deliveryZones: current.deliveryZones.filter(
+        (_, zoneIndex) => zoneIndex !== index,
+      ),
+    }));
+  }
+
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -83,7 +118,16 @@ export function GeneralSettingsModule() {
       const response = await requestAdminApi("/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          ...settings,
+          deliveryZones: settings.deliveryZones.map((zone) => ({
+            ...zone,
+            name: zone.name.trim(),
+            neighborhoods: zone.neighborhoods
+              .map((neighborhood) => neighborhood.trim())
+              .filter(Boolean),
+          })),
+        }),
       });
       if (!response.ok) throw new Error(await readError(response));
       const result = (await response.json()) as StoreStatus;
@@ -323,6 +367,104 @@ export function GeneralSettingsModule() {
                 {settings.story.body.length}/2000
               </span>
             </label>
+          </fieldset>
+
+          <fieldset className="py-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <legend className="text-lg font-extrabold">
+                Taxas de entrega por zona
+              </legend>
+              <button
+                type="button"
+                onClick={addDeliveryZone}
+                className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d6d6ce] px-3 text-sm font-bold text-[#48483f] transition-colors hover:border-[#8b1a2e] hover:text-[#8b1a2e]"
+              >
+                <PlusIcon aria-hidden="true" size={17} weight="bold" />
+                Adicionar zona
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-[#77776e]">
+              Origem: {settings.deliveryOriginAddress}. Os bairros precisam
+              corresponder ao nome preenchido pelo CEP.
+            </p>
+            <div className="mt-4 divide-y divide-[#ecece6]">
+              {settings.deliveryZones.map((zone, index) => (
+                <div
+                  key={`${zone.name}-${index}`}
+                  className="grid gap-3 py-4 sm:grid-cols-2 lg:grid-cols-[minmax(140px,0.8fr)_minmax(220px,1.5fr)_140px_auto_auto] lg:items-end"
+                >
+                  <label className="space-y-1.5 text-sm font-semibold">
+                    Zona
+                    <input
+                      required
+                      maxLength={80}
+                      value={zone.name}
+                      onChange={(event) =>
+                        updateDeliveryZone(index, { name: event.target.value })
+                      }
+                      className={textInputClassName}
+                    />
+                  </label>
+                  <label className="space-y-1.5 text-sm font-semibold">
+                    Bairros
+                    <input
+                      required
+                      value={zone.neighborhoods.join(", ")}
+                      onChange={(event) =>
+                        updateDeliveryZone(index, {
+                          neighborhoods: event.target.value
+                            .split(",")
+                            .map((neighborhood) => neighborhood.trim()),
+                        })
+                      }
+                      placeholder="Realengo, Padre Miguel"
+                      className={textInputClassName}
+                    />
+                  </label>
+                  <label className="space-y-1.5 text-sm font-semibold">
+                    Taxa (R$)
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="0.01"
+                      required
+                      value={(zone.feeCents / 100).toFixed(2)}
+                      onChange={(event) =>
+                        updateDeliveryZone(index, {
+                          feeCents: Math.round(
+                            Number(event.target.value || 0) * 100,
+                          ),
+                        })
+                      }
+                      className={textInputClassName}
+                    />
+                  </label>
+                  <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={zone.enabled}
+                      onChange={(event) =>
+                        updateDeliveryZone(index, {
+                          enabled: event.target.checked,
+                        })
+                      }
+                      className="size-4 accent-[#8b1a2e]"
+                    />
+                    Ativa
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeDeliveryZone(index)}
+                    aria-label={`Remover zona ${zone.name}`}
+                    title="Remover zona"
+                    className="inline-flex size-10 items-center justify-center rounded-md text-[#8b1a2e] transition-colors hover:bg-[#f7e7e7]"
+                  >
+                    <TrashIcon aria-hidden="true" size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </fieldset>
 
           <div className="flex flex-col gap-3 pt-5 sm:flex-row sm:items-center sm:justify-between">
