@@ -78,6 +78,9 @@ export function AcaiBuilder({
   const [orderFeedback, setOrderFeedback] = useState<{
     type: "success" | "error";
     message: string;
+    orderNumber?: number;
+    trackingHref?: string;
+    whatsAppHref?: string;
   } | null>(null);
   const [cartItems, setCartItems] = useState<BuilderCartItem[]>([]);
   useEffect(() => {
@@ -490,9 +493,7 @@ export function AcaiBuilder({
           ]
         : []),
     ].join("\n");
-    const url = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(deliveryMessage)}`;
-    const whatsappWindow = window.open("about:blank", "_blank");
-    if (whatsappWindow) whatsappWindow.opener = null;
+    const manualWhatsAppUrl = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(deliveryMessage)}`;
 
     setIsSubmittingOrder(true);
     setOrderFeedback(null);
@@ -531,18 +532,33 @@ export function AcaiBuilder({
         estimatedTotalCents: Math.round(total * 100),
       });
 
-      if (whatsappWindow) whatsappWindow.location.href = url;
-      else window.open(url, "_blank", "noopener,noreferrer");
+      if (!response.persisted || !response.orderId) {
+        setOrderFeedback({
+          type: "error",
+          message:
+            "A loja não confirmou o registro do pedido. Você ainda pode falar com a loja pelo WhatsApp, mas não haverá acompanhamento online.",
+          whatsAppHref: manualWhatsAppUrl,
+        });
+        return;
+      }
+
+      const trackingHref = `/pedido/${encodeURIComponent(response.orderId)}`;
+      const whatsAppMessage = [
+        `Olá! Acabei de registrar o pedido #${response.orderNumber} pelo site.`,
+        `Acompanhe o status: ${window.location.origin}${trackingHref}`,
+      ].join("\n");
+      const whatsAppHref = `https://wa.me/${whatsAppNumber}?text=${encodeURIComponent(whatsAppMessage)}`;
 
       setOrderFeedback({
         type: "success",
-        message: response.persisted
-          ? "Pedido registrado. Confira e envie a mensagem aberta no WhatsApp."
-          : "A API recebeu o pedido, mas ainda não o armazena. Confira e envie a mensagem no WhatsApp para concluir.",
+        message:
+          "O pedido foi registrado com sucesso. O contato pelo WhatsApp é opcional.",
+        orderNumber: response.orderNumber,
+        trackingHref,
+        whatsAppHref,
       });
     } catch (submitError) {
       if (submitError instanceof ApiError && submitError.status === 409) {
-        whatsappWindow?.close();
         try {
           onStoreStatusChange(await getStoreStatus());
         } catch {
@@ -550,17 +566,17 @@ export function AcaiBuilder({
         }
         setOrderFeedback({
           type: "error",
-          message: "A loja fechou antes da confirmação. O pedido não foi enviado.",
+          message:
+            "A loja fechou antes da confirmação. O pedido não foi enviado.",
         });
         return;
       }
 
-      if (whatsappWindow) whatsappWindow.location.href = url;
-      else window.open(url, "_blank", "noopener,noreferrer");
       setOrderFeedback({
         type: "error",
         message:
-          "Não foi possível enviar o pedido à API. A mensagem abriu no WhatsApp; envie por lá para encaminhar seu pedido.",
+          "Não foi possível registrar o pedido pelo site. Se preferir, fale com a loja pelo WhatsApp; esse pedido não terá acompanhamento online.",
+        whatsAppHref: manualWhatsAppUrl,
       });
     } finally {
       setIsSubmittingOrder(false);
@@ -591,7 +607,7 @@ export function AcaiBuilder({
                   : comboServingCount > 1
                     ? `Porção ${comboServingIndex + 1} de ${comboServingCount} · escolha o sabor e personalize este copo.`
                     : "Escolha o sabor e personalize os complementos do produto."
-              : "Informe onde entregar e como prefere pagar. A solicitação vai para a API e a mensagem abre no WhatsApp."}
+              : "Informe onde entregar e como prefere pagar. Seu pedido será registrado pela loja; o WhatsApp fica disponível para contato, se precisar."}
           </p>
           <ol
             aria-label="Etapas do pedido"

@@ -274,7 +274,7 @@ export function OrderSummary({
             ? "A loja está fechada; pedidos estão pausados."
             : checkoutStep === 1
               ? "Na próxima etapa você informa endereço e forma de pagamento."
-              : "Confira os dados e envie seu pedido pelo WhatsApp."}
+              : "O pedido é registrado pela loja; o WhatsApp fica disponível para contato."}
         </p>
       </aside>
 

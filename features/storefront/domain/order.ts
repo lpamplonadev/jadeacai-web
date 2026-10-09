@@ -121,3 +121,26 @@ export type CreateOrderRequest = {
   notes: string;
   estimatedTotalCents: number;
 };
+
+export type CreateOrderResponse = {
+  status: string;
+  persisted: boolean;
+  orderId: string;
+  orderNumber: number;
+  orderDate: string;
+};
+
+export type OrderStatus =
+  | "received"
+  | "preparing"
+  | "ready"
+  | "out_for_delivery"
+  | "delivered"
+  | "completed";
+
+export type OrderTracking = {
+  orderNumber: number;
+  orderDate: string;
+  status: OrderStatus;
+  createdAt: string;
+};

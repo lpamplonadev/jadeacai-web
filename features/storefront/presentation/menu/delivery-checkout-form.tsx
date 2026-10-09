@@ -1,5 +1,9 @@
 import { useRef, useState, type FormEvent } from "react";
-import { ArrowLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  WhatsappLogoIcon,
+} from "@phosphor-icons/react";
 import { getCepAddress } from "@/features/storefront/infrastructure/cep-api";
 import {
   brazilianMobilePhonePattern,
@@ -29,7 +33,13 @@ type DeliveryCheckoutFormProps = {
   orderTotal: number;
   isSubmitting: boolean;
   storeIsOpen: boolean;
-  orderFeedback: { type: "success" | "error"; message: string } | null;
+  orderFeedback: {
+    type: "success" | "error";
+    message: string;
+    orderNumber?: number;
+    trackingHref?: string;
+    whatsAppHref?: string;
+  } | null;
 };
 
 const inputClassName =
@@ -54,6 +64,43 @@ export function DeliveryCheckoutForm({
   const [cepLookupMessage, setCepLookupMessage] = useState("");
   const [isLookingUpCep, setIsLookingUpCep] = useState(false);
   const cepLookupController = useRef<AbortController | null>(null);
+
+  if (orderFeedback?.type === "success" && orderFeedback.trackingHref) {
+    return (
+      <section className="space-y-5 border-t border-blush/70 pt-6">
+        <div role="status" aria-live="polite">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-coral">
+            Pedido confirmado
+          </p>
+          <h3 className="mt-2 text-2xl font-black text-crimson">
+            Pedido #{orderFeedback.orderNumber}
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-crimson/75">
+            {orderFeedback.message}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <a
+            href={orderFeedback.trackingHref}
+            className="inline-flex min-h-12 items-center justify-center rounded-md bg-crimson px-5 text-sm font-extrabold text-white transition-colors hover:bg-dark"
+          >
+            Acompanhar pedido
+          </a>
+          {orderFeedback.whatsAppHref && (
+            <a
+              href={orderFeedback.whatsAppHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-whatsapp px-5 text-sm font-bold text-crimson transition-colors hover:bg-white"
+            >
+              <WhatsappLogoIcon aria-hidden="true" size={19} weight="fill" />
+              Falar com a loja
+            </a>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -323,12 +370,25 @@ export function DeliveryCheckoutForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-blush/70 pt-5 sm:flex-row sm:justify-between">
         {orderFeedback && (
-          <p
-            role={orderFeedback.type === "error" ? "alert" : "status"}
-            className={`basis-full text-sm font-semibold ${orderFeedback.type === "error" ? "text-destructive" : "text-green-800"}`}
-          >
-            {orderFeedback.message}
-          </p>
+          <div className="basis-full space-y-2">
+            <p
+              role="alert"
+              className="text-sm font-semibold text-destructive"
+            >
+              {orderFeedback.message}
+            </p>
+            {orderFeedback.whatsAppHref && (
+              <a
+                href={orderFeedback.whatsAppHref}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-10 items-center gap-2 text-sm font-bold text-crimson underline underline-offset-4"
+              >
+                <WhatsappLogoIcon aria-hidden="true" size={18} weight="fill" />
+                Enviar pedido pelo WhatsApp
+              </a>
+            )}
+          </div>
         )}
         <button
           type="button"
@@ -340,13 +400,13 @@ export function DeliveryCheckoutForm({
         <button
           type="submit"
           disabled={isSubmitting || !storeIsOpen}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-whatsapp px-5 text-sm font-extrabold text-white transition-colors hover:bg-whatsapp/90 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-crimson px-5 text-sm font-extrabold text-white transition-colors hover:bg-dark disabled:cursor-wait disabled:opacity-60"
         >
-          <WhatsappLogoIcon aria-hidden="true" size={20} weight="fill" />
+          <CheckIcon aria-hidden="true" size={19} weight="bold" />
           {isSubmitting
-            ? "Enviando pedido..."
+            ? "Registrando pedido..."
             : storeIsOpen
-              ? "Enviar pedido pelo WhatsApp"
+              ? "Confirmar pedido"
               : "Loja fechada"}
         </button>
       </div>

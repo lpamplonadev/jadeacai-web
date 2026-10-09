@@ -1,6 +1,10 @@
 import type { PublicCatalog } from "@/features/storefront/domain/catalog";
 import type { MenuCombo } from "@/features/storefront/domain/menu-types";
-import type { CreateOrderRequest } from "@/features/storefront/domain/order";
+import type {
+  CreateOrderRequest,
+  CreateOrderResponse,
+  OrderTracking,
+} from "@/features/storefront/domain/order";
 import type { StoreStatus } from "@/shared/domain/store-settings";
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
@@ -68,9 +72,15 @@ export async function getStoreStatus() {
 }
 
 export async function createOrder(order: CreateOrderRequest) {
-  return requestJson<{ status: string; persisted: boolean }>("/api/v1/orders", {
+  return requestJson<CreateOrderResponse>("/api/v1/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order),
   });
+}
+
+export async function getOrderTracking(orderId: string) {
+  return requestJson<OrderTracking>(
+    `/api/v1/orders/${encodeURIComponent(orderId)}/tracking`,
+  );
 }
