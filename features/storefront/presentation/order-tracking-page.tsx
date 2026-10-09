@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckIcon } from "@phosphor-icons/react";
+import {
+  CheckCircleIcon,
+  CheckIcon,
+  CircleNotchIcon,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import {
   ApiError,
@@ -21,11 +25,21 @@ const orderSteps: { status: OrderStatus; label: string }[] = [
   { status: "completed", label: "Concluído" },
 ];
 
+const statusDescriptions: Record<OrderStatus, string> = {
+  received: "Seu pedido foi registrado e a loja já recebeu a solicitação.",
+  preparing: "A loja está preparando seu pedido agora.",
+  ready: "Seu pedido está pronto para a próxima etapa.",
+  out_for_delivery: "Seu pedido saiu da loja e está a caminho.",
+  delivered: "Seu pedido foi entregue. Esperamos que aproveite!",
+  completed: "Pedido concluído. Obrigado por pedir na Jade's Açaí.",
+};
+
 export function OrderTrackingPage({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<OrderTrackingData | null>(null);
   const [error, setError] = useState<"not-found" | "unavailable" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const isComplete = order?.status === "completed";
 
   useEffect(() => {
     let active = true;
@@ -50,13 +64,15 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
     }
 
     void refreshOrder();
-    const interval = window.setInterval(() => void refreshOrder(), 15_000);
+    const interval = isComplete
+      ? null
+      : window.setInterval(() => void refreshOrder(), 15_000);
 
     return () => {
       active = false;
-      window.clearInterval(interval);
+      if (interval !== null) window.clearInterval(interval);
     };
-  }, [orderId]);
+  }, [isComplete, orderId]);
 
   const currentStep = order
     ? orderSteps.findIndex((step) => step.status === order.status)
@@ -91,19 +107,89 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
 
         {order && (
           <section className="mt-8 border-y border-blush/80 py-6">
-            <div aria-live="polite">
-              <p className="text-sm font-bold text-crimson/70">
-                Pedido #{order.orderNumber} · {order.orderDate}
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-crimson">
-                {orderSteps[currentStep]?.label ?? "Status atualizado"}
-              </h2>
-              <p className="mt-2 text-sm text-crimson/70">
-                Pedido feito em {createdAt}
-              </p>
+            <div
+              aria-live="polite"
+              className="rounded-md border border-blush/70 bg-white p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-crimson/70">
+                    Pedido #{order.orderNumber} · {order.orderDate}
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black text-crimson">
+                    {orderSteps[currentStep]?.label ?? "Status atualizado"}
+                  </h2>
+                </div>
+                {!isComplete && (
+                  <span
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-full px-3 text-xs font-extrabold ${error === "unavailable" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}
+                  >
+                    {error === "unavailable" ? (
+                      <CircleNotchIcon
+                        aria-hidden="true"
+                        size={14}
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
+                      </span>
+                    )}
+                    {error === "unavailable"
+                      ? "Reconectando"
+                      : "Acompanhamento ativo"}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-5 flex items-start gap-3 border-t border-blush/50 pt-4">
+                {error === "unavailable" ? (
+                  <CircleNotchIcon
+                    aria-hidden="true"
+                    size={22}
+                    className="mt-0.5 shrink-0 animate-spin text-amber-700"
+                  />
+                ) : (
+                  <CheckCircleIcon
+                    aria-hidden="true"
+                    size={22}
+                    weight="fill"
+                    className="mt-0.5 shrink-0 text-emerald-700"
+                  />
+                )}
+                <div>
+                  <p className="text-sm font-extrabold text-crimson">
+                    {error === "unavailable"
+                      ? "Estamos tentando atualizar"
+                      : isComplete
+                        ? "Tudo certo com seu pedido"
+                        : "Tudo certo, seguimos acompanhando"}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-crimson/75">
+                    {error === "unavailable"
+                      ? "Este é o último status recebido. Assim que a conexão voltar, buscamos a próxima atualização."
+                      : statusDescriptions[order.status]}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap justify-between gap-x-4 gap-y-1 border-t border-blush/50 pt-3 text-xs text-crimson/60">
+                <p>Pedido feito em {createdAt}</p>
+                {lastUpdated && (
+                  <p>
+                    Atualizado às {lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {!isComplete && error !== "unavailable" &&
+                      " · consulta automática a cada 15 s"}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <ol className="mt-7 space-y-4" aria-label="Etapas do pedido">
+            <ol
+              className="mt-7 space-y-4"
+              aria-label="Etapas do pedido"
+            >
               {orderSteps.map((step, index) => {
                 const isComplete = index <= currentStep;
                 const isCurrent = index === currentStep;
@@ -132,18 +218,19 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
                 );
               })}
             </ol>
-            {lastUpdated && (
-              <p className="mt-5 text-xs text-crimson/60">
-                Atualizado às {lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            )}
           </section>
         )}
 
         {!order && isLoading && (
-          <p role="status" className="mt-8 text-sm text-crimson/70">
-            Consultando pedido...
-          </p>
+          <div role="status" className="mt-8 animate-pulse">
+            <p className="text-sm font-bold text-crimson">
+              Conectando à loja...
+            </p>
+            <p className="mt-2 text-sm text-crimson/70">
+              Estamos buscando o status mais recente do seu pedido.
+            </p>
+            <div className="mt-5 h-20 rounded-md bg-white ring-1 ring-blush/60" />
+          </div>
         )}
         {!order && !isLoading && error === "not-found" && (
           <p role="alert" className="mt-8 text-sm font-semibold text-crimson">
@@ -151,16 +238,20 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
           </p>
         )}
         {!order && !isLoading && error === "unavailable" && (
-          <p role="alert" className="mt-8 text-sm font-semibold text-crimson">
-            Não foi possível consultar o pedido agora. Tente abrir este link novamente.
-          </p>
+          <div role="status" className="mt-8 flex items-start gap-3 text-crimson">
+            <CircleNotchIcon
+              aria-hidden="true"
+              size={20}
+              className="mt-0.5 shrink-0 animate-spin"
+            />
+            <div>
+              <p className="text-sm font-bold">Conexão instável</p>
+              <p className="mt-1 text-sm text-crimson/70">
+                Estamos tentando consultar seu pedido novamente.
+              </p>
+            </div>
+          </div>
         )}
-        {order && error === "unavailable" && (
-          <p role="status" className="mt-4 text-sm text-crimson/70">
-            Não foi possível atualizar agora; exibimos o último status recebido.
-          </p>
-        )}
-
         <Link
           href="/"
           className="mt-8 inline-flex min-h-11 items-center text-sm font-bold text-crimson underline underline-offset-4"
