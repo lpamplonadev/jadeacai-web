@@ -66,6 +66,30 @@ export const defaultStoreSettings: StoreSettings = {
       feeCents: 300,
       enabled: true,
     },
+    {
+      name: "Padre Miguel",
+      neighborhoods: ["Padre Miguel"],
+      feeCents: 0,
+      enabled: false,
+    },
+    {
+      name: "Bangu",
+      neighborhoods: ["Bangu"],
+      feeCents: 0,
+      enabled: false,
+    },
+    {
+      name: "Sulacap",
+      neighborhoods: ["Sulacap"],
+      feeCents: 0,
+      enabled: false,
+    },
+    {
+      name: "Magalhães",
+      neighborhoods: ["Magalhães Bastos"],
+      feeCents: 0,
+      enabled: false,
+    },
   ],
 };
 
@@ -89,5 +113,10 @@ export function findDeliveryZone(
 }
 
 function normalizeNeighborhood(value: string) {
-  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("pt-BR");
 }
